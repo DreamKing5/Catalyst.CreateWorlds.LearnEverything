@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catalyst — Create Worlds. Learn Everything.</title>
+<style>
+:root{
+  --bg:#191919;--surface:#202020;--raised:#2a2a29;--hover:#383836;
+  --text:#ffffff;--sub:rgba(255,255,255,.65);--faint:rgba(255,255,255,.4);
+  --line:rgba(255,255,255,.14);--accent:#5E9FE8;--accent-soft:rgba(94,159,232,.12);
+  --green:#72BC8F;--green-soft:rgba(114,188,143,.12);
+  --orange:#DE9255;--orange-soft:rgba(222,146,85,.12);
+  --red:#E97366;--red-soft:rgba(233,115,102,.12);
+  --mono:Menlo,Consolas,"Noto Sans Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:14px;overflow:hidden;display:flex;flex-direction:column}
+button{font:inherit;cursor:pointer;color:var(--text);background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12.5px}
+button:hover{background:var(--hover)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.acc{background:var(--accent);border-color:var(--accent);color:#10141a;font-weight:600}
+button.acc:hover{filter:brightness(1.1)}
+button.ok{background:var(--green);border-color:var(--green);color:#0f1712;font-weight:600}
+button.sm{padding:3px 9px;font-size:11.5px;border-radius:6px}
+input,select,textarea{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12.5px}
+input:focus,textarea:focus,select:focus{outline:1.5px solid var(--accent)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--hover);border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- Header ---------- */
+header{height:46px;flex:0 0 46px;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--surface);border-bottom:1px solid var(--line);z-index:30}
+.logo{font-weight:700;font-size:15px;letter-spacing:.02em;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.logo .bolt{color:var(--accent)}
+.logo .studio{color:var(--sub);font-weight:400;font-size:12px}
+.head-meta{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:12px;white-space:nowrap}
+.head-meta b{color:var(--text)}
+.head-bar{width:120px;height:6px;border-radius:3px;background:var(--raised);overflow:hidden}
+.head-bar i{display:block;height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width .4s}
+.sp{flex:1}
+.head-actions{display:flex;gap:6px;align-items:center}
+label.btn{font:inherit;cursor:pointer;color:var(--text);background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12.5px}
+label.btn:hover{background:var(--hover)}
+
+/* ---------- Layout ---------- */
+#layout{flex:1;display:grid;grid-template-columns:248px 1fr 340px;min-height:0}
+aside{background:var(--surface);min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#left{border-right:1px solid var(--line)}
+#right{border-left:1px solid var(--line)}
+#center{display:flex;flex-direction:column;min-width:0;min-height:0}
+.panel-h{flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.09em;color:var(--faint);padding:10px 12px 6px;display:flex;align-items:center;gap:6px}
+.panel-h .cnt{background:var(--raised);border-radius:8px;padding:0 7px;font-size:10px;color:var(--sub)}
+#explorer{flex:0 0 auto;max-height:38%;overflow-y:auto;padding:0 6px 8px}
+#issueList{flex:1;overflow-y:auto;padding:0 6px 10px;border-top:1px solid var(--line)}
+
+/* explorer tree */
+.tree-folder{font-size:12.5px;color:var(--sub);padding:3px 6px;border-radius:6px;cursor:pointer;user-select:none}
+.tree-folder:hover{background:var(--raised)}
+.tree-file{font-size:12.5px;padding:3px 6px 3px 24px;border-radius:6px;cursor:pointer;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);font-size:11.5px}
+.tree-file:hover{background:var(--raised)}
+.tree-file.active{background:var(--accent-soft);color:var(--accent)}
+.tree-file .dirty{color:var(--orange)}
+.tree-empty{padding:2px 6px 2px 24px;font-size:11px;color:var(--faint)}
+
+/* issue list */
+.iss{padding:7px 9px;border-radius:8px;cursor:pointer;margin:2px 2px;border:1px solid transparent}
+.iss:hover{background:var(--raised)}
+.iss.sel{border-color:var(--accent);background:var(--accent-soft)}
+.iss.locked{opacity:.38;cursor:default}
+.iss .no{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.iss .t{font-size:12.5px;margin-top:1px}
+.iss .badges{margin-top:4px;display:flex;gap:5px;flex-wrap:wrap}
+.badge{font-size:9.5px;padding:1px 7px;border-radius:8px;background:var(--raised);color:var(--sub)}
+.badge.wip{background:var(--accent-soft);color:var(--accent)}
+.badge.built{background:var(--orange-soft);color:var(--orange)}
+.badge.done{background:var(--green-soft);color:var(--green)}
+.badge.lv{background:transparent;border:1px solid var(--line)}
+
+/* ---------- Editor ---------- */
+#edToolbar{flex:0 0 40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);background:var(--surface);overflow-x:auto}
+#edFile{font-family:var(--mono);font-size:12px;color:var(--sub);white-space:nowrap}
+#edFile b{color:var(--text);font-weight:600}
+#edDirty{color:var(--orange);font-size:16px;line-height:1;visibility:hidden}
+.ed-tools{display:flex;gap:6px;align-items:center;margin-left:auto}
+.ed-tools input{width:110px;padding:3px 8px;font-size:11.5px}
+#editorWrap{flex:1;display:flex;min-height:0;background:var(--bg);position:relative}
+#lineNos{flex:0 0 46px;overflow:hidden;padding:10px 8px 10px 0;text-align:right;color:var(--faint);font-family:var(--mono);font-size:12.5px;line-height:1.55;background:var(--surface);border-right:1px solid var(--line);user-select:none}
+#edStack{flex:1;position:relative;min-width:0}
+#hl,#code{position:absolute;inset:0;padding:10px 14px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre;overflow:auto;tab-size:4}
+#hl{pointer-events:none;color:var(--text)}
+#code{resize:none;background:transparent;color:transparent;caret-color:var(--accent);border:none;border-radius:0;outline:none}
+#code::selection{background:rgba(94,159,232,.30)}
+.k{color:#6FB4FF}.s{color:#E8B36B}.c{color:#7fa06f;font-style:italic}.n{color:#c99ce8}.ty{color:#5FD4C4}
+#edEmpty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:13px;flex-direction:column;gap:10px;text-align:center;line-height:1.9}
+
+/* ---------- Tabs (bottom & right) ---------- */
+.tabs{flex:0 0 34px;display:flex;align-items:stretch;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{background:transparent;border:none;border-bottom:2px solid transparent;border-radius:0;color:var(--sub);padding:0 14px;font-size:12px;white-space:nowrap}
+.tabs button:hover{color:var(--text);background:transparent}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabs .dot{display:inline-block;width:6px;height:6px;border-radius:3px;background:var(--red);margin-left:5px;vertical-align:2px;visibility:hidden}
+.tabs .dot.show{visibility:visible}
+.tabbody{flex:1;overflow-y:auto;display:none;min-height:0}
+.tabbody.on{display:flex;flex-direction:column}
+#bottom{flex:0 0 224px;display:flex;flex-direction:column;border-top:1px solid var(--line);background:var(--surface);min-height:0}
+#bottom.min{flex-basis:34px}
+#bottom.min .tabbody{display:none}
+
+/* terminal */
+#termOut{flex:1;overflow-y:auto;font-family:var(--mono);font-size:12px;line-height:1.6;padding:10px 14px;color:var(--sub)}
+#termOut .cmd{color:var(--text)}
+#termLine{flex:0 0 auto;display:flex;gap:8px;padding:6px 14px 10px;align-items:center}
+#termLine .ps{font-family:var(--mono);color:var(--green);font-size:12px}
+#termIn{flex:1;font-family:var(--mono);background:transparent;border:none;outline:none;color:var(--text)}
+
+/* git */
+#tbGit{padding:12px 14px;gap:10px}
+#gitHead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#gitHead .br{font-family:var(--mono);font-size:12px;background:var(--raised);padding:2px 10px;border-radius:8px;color:var(--accent)}
+#commitMsg{flex:1;min-width:160px}
+#gitLog{flex:1;overflow-y:auto;font-size:12px}
+.commit{display:flex;gap:10px;padding:6px 4px;border-bottom:1px solid var(--line);align-items:baseline}
+.commit .hash{font-family:var(--mono);color:var(--orange);font-size:11px}
+.commit .msg{flex:1}
+.commit .when{color:var(--faint);font-size:10.5px;white-space:nowrap}
+
+/* build tab */
+#tbBuild{padding:14px;gap:12px}
+#buildStatus{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#buildLamp{width:10px;height:10px;border-radius:5px;background:var(--faint)}
+#buildLamp.ok{background:var(--green)}#buildLamp.ng{background:var(--red)}
+#buildFeats{display:flex;flex-wrap:wrap;gap:6px}
+.feat{font-size:11px;padding:3px 10px;border-radius:9px;background:var(--raised);color:var(--faint)}
+.feat.on{background:var(--green-soft);color:var(--green)}
+
+/* notifications */
+#tbNotif{padding:8px 14px}
+.ntf{display:flex;gap:9px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:12.5px;align-items:baseline}
+.ntf .ic{flex:0 0 auto}
+.ntf .when{margin-left:auto;color:var(--faint);font-size:10.5px;white-space:nowrap}
+
+/* ---------- Right panels ---------- */
+#rbIssue{padding:14px 16px;gap:10px}
+#rbIssue h3{font-size:14.5px;line-height:1.45}
+#rbIssue .meta{display:flex;gap:6px;flex-wrap:wrap}
+.spec{border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:12.5px}
+.spec>div{padding:8px 12px;border-bottom:1px solid var(--line);line-height:1.7}
+.spec>div:last-child{border-bottom:none}
+.spec .lb{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--faint);display:block;margin-bottom:2px}
+.spec code,.spec pre{font-family:var(--mono);font-size:11.5px;background:var(--bg);border-radius:6px}
+.spec pre{padding:8px 10px;overflow-x:auto;margin-top:4px;line-height:1.55;color:var(--sub)}
+.spec code{padding:1px 5px}
+#issueActions{display:flex;gap:8px;flex-wrap:wrap}
+.checklist{list-style:none;font-size:12.5px}
+.checklist li{padding:3px 0;color:var(--sub)}
+.checklist li.ok{color:var(--green)}
+.hintbox{background:var(--orange-soft);border:1px solid rgba(222,146,85,.35);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--orange);line-height:1.7}
+
+#rbReview{padding:14px 16px;gap:10px}
+.rev{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.7}
+.rev .who{font-weight:600;font-size:12px;margin-bottom:4px}
+.rev.ok{border-color:rgba(114,188,143,.4);background:var(--green-soft)}
+.rev.ng{border-color:rgba(233,115,102,.4);background:var(--red-soft)}
+
+#rbConsole{font-family:var(--mono);font-size:11.8px;line-height:1.65;padding:10px 14px}
+#rbConsole .err{color:var(--red)}#rbConsole .warn{color:var(--orange)}#rbConsole .ok{color:var(--green)}#rbConsole .info{color:var(--sub)}
+#rbConsole div{padding:1px 0;word-break:break-all}
+
+#rbChat{padding:10px 12px 8px;gap:8px}
+#chatMsgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:6px}
+.msg{display:flex;gap:9px;font-size:12.5px}
+.msg .av{flex:0 0 30px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--raised)}
+.msg .bd{flex:1;min-width:0}
+.msg .who{font-size:11px;color:var(--sub);margin-bottom:2px}
+.msg .who b{color:var(--text)}
+.msg .tx{background:var(--raised);border-radius:0 10px 10px 10px;padding:7px 11px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.msg.me .tx{background:var(--accent-soft)}
+#chatLine{display:flex;gap:7px}
+#chatIn{flex:1}
+
+/* ---------- Status bar ---------- */
+#statusbar{flex:0 0 27px;display:flex;align-items:center;gap:16px;padding:0 14px;background:var(--surface);border-top:1px solid var(--line);font-size:11px;color:var(--sub);overflow:hidden;white-space:nowrap}
+#statusbar .seg{display:flex;align-items:center;gap:5px}
+#statusbar .seg b{color:var(--text);font-weight:600}
+#sbBar{width:130px;height:5px;background:var(--raised);border-radius:3px;overflow:hidden}
+#sbBar i{display:block;height:100%;width:0%;background:var(--green);transition:width .4s}
+
+/* ---------- Modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal.on{display:flex}
+.modal .box{background:var(--surface);border:1px solid var(--line);border-radius:14px;max-width:640px;width:100%;max-height:92vh;overflow-y:auto;padding:28px 30px}
+.modal h2{font-size:19px;margin-bottom:4px}
+.modal .tag{color:var(--accent);font-size:12px;letter-spacing:.06em;margin-bottom:14px}
+.modal p{color:var(--sub);line-height:1.9;font-size:13.5px;margin-bottom:12px}
+.modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+
+/* preview modal */
+#pvBox{max-width:720px}
+#pvWrap{position:relative;background:#0d0f13;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+#game{display:block;width:100%;image-rendering:pixelated;outline:none}
+#pvHud{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--sub)}
+#pvKeys{font-size:11.5px;color:var(--faint);line-height:1.8;margin-top:8px}
+kbd{font-family:var(--mono);font-size:10.5px;background:var(--raised);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+@media(max-width:1100px){#layout{grid-template-columns:210px 1fr 300px}}
+@media(max-width:920px){
+  #layout{grid-template-columns:1fr}
+  aside{position:fixed;top:46px;bottom:27px;width:290px;z-index:50;transform:translateX(-100%);transition:transform .25s;box-shadow:0 0 40px rgba(0,0,0,.5)}
+  #right{right:0;left:auto;transform:translateX(100%)}
+  aside.open{transform:translateX(0)}
+  .head-bar,.head-meta{display:none}
+  #mNavL,#mNavR{display:inline-block}
+}
+#mNavL,#mNavR{display:none}
+
+/* ===== v0.2: パネル開閉 / モバイル / デザイン ===== */
+#layout.noL #left{display:none}
+#layout.noR #right{display:none}
+#layout.noL{grid-template-columns:1fr 340px}
+#layout.noR{grid-template-columns:248px 1fr}
+#layout.noL.noR{grid-template-columns:1fr}
+@media(max-width:1100px){
+  #layout.noL{grid-template-columns:1fr 300px}
+  #layout.noR{grid-template-columns:210px 1fr}
+  #layout.noL.noR{grid-template-columns:1fr}
+}
+#btnPaneL.off,#btnPaneR.off{opacity:.45}
+#scrim{position:fixed;top:46px;left:0;right:0;bottom:27px;background:rgba(0,0,0,.45);z-index:45;display:none}
+#scrim.on{display:block}
+button.acc{background:linear-gradient(180deg,#69a8ee,#4e91dc);border-color:transparent}
+button.acc:hover:not(:disabled){background:linear-gradient(180deg,#79b4f2,#5a9be2)}
+.modal{backdrop-filter:blur(3px)}
+.modal .box{box-shadow:0 24px 80px rgba(0,0,0,.6)}
+#hdBarFill,#sbBarFill{background:linear-gradient(90deg,#5E9FE8,#5FD4C4)}
+#game{image-rendering:pixelated}
+#introArt{display:flex;gap:18px;margin:0 0 16px;justify-content:center;align-items:center;background:linear-gradient(180deg,#1c2836,#151f2b);border:1px solid var(--line);border-radius:12px;padding:14px}
+#introArt img{width:44px;height:44px;image-rendering:pixelated}
+#touchUI{display:none;justify-content:space-between;align-items:center;margin-top:10px;-webkit-user-select:none;user-select:none}
+#touchUI.on{display:flex}
+#dpad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:4px}
+#dpad button,#abtns button{touch-action:manipulation;padding:0;font-size:15px;border-radius:10px}
+#abtns{display:flex;gap:12px;align-items:flex-end}
+#abtns button{width:54px;height:54px;border-radius:50%;font-size:11px;line-height:1.25}
+@media(max-width:920px){
+  #layout.noL #left,#layout.noR #right{display:flex}
+  #btnPaneL,#btnPaneR{display:none}
+  #bottom{flex-basis:200px}
+}
+@media(max-width:700px){
+  .head-actions{overflow-x:auto;max-width:62vw}
+  #pvBox{width:96vw;max-width:96vw;padding:14px}
+  #game{width:100%;height:auto}
+  #statusbar{overflow-x:auto}
+  .modal .box{max-height:92vh;overflow-y:auto}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="mNavL" class="sm">☰</button>
+  <div class="logo"><span class="bolt">⚡</span>Catalyst <span class="studio">STUDIO</span></div>
+  <div class="head-meta">Phase <b id="hdPhase">1</b><span>・</span>完成率 <b id="hdPct">0%</b></div>
+  <div class="head-bar"><i id="hdBarFill"></i></div>
+  <div class="sp"></div>
+  <div class="head-actions">
+    <button id="btnPaneL" class="sm" title="左パネルの表示/非表示">◧ 左</button>
+    <button id="btnPaneR" class="sm" title="右パネルの表示/非表示">右 ◨</button>
+    <button id="btnUnity" title="全Issue完了後に有効化" disabled>🎮 Unity出力</button>
+    <button id="btnSaveAll" title="進行状況を保存">💾 保存</button>
+    <button id="btnJsonOut" class="sm" title="セーブデータをJSONで書き出し">書出</button>
+    <label class="btn sm" title="JSONセーブデータを読み込み">読込<input id="jsonIn" type="file" accept=".json" hidden></label>
+    <button id="btnReset" class="sm" title="最初からやり直す">初期化</button>
+  </div>
+  <button id="mNavR" class="sm">🗨</button>
+</header>
+
+<div id="scrim"></div>
+<div id="layout">
+  <aside id="left">
+    <div class="panel-h">PROJECT EXPLORER</div>
+    <div id="explorer"></div>
+    <div class="panel-h">ISSUES <span class="cnt" id="issCnt">0/0</span></div>
+    <div id="issueList"></div>
+  </aside>
+
+  <main id="center">
+    <div id="edToolbar">
+      <span id="edFile">ファイル未選択</span><span id="edDirty">●</span>
+      <div class="ed-tools">
+        <input id="findIn" placeholder="検索">
+        <input id="replIn" placeholder="置換">
+        <button id="btnFind" class="sm">次へ</button>
+        <button id="btnRepl" class="sm">置換</button>
+        <button id="btnReplAll" class="sm">全て</button>
+        <select id="snippet" title="補完（スニペット挿入）">
+          <option value="">補完 ▾</option>
+          <option value="if">if 文</option>
+          <option value="for">for 文</option>
+          <option value="foreach">foreach 文</option>
+          <option value="method">メソッド</option>
+          <option value="class">クラス</option>
+          <option value="prop">プロパティ</option>
+        </select>
+        <button id="btnSaveFile" class="sm">保存 ⌘S</button>
+        <button id="btnBuild" class="acc">▶ Build</button>
+      </div>
+    </div>
+    <div id="editorWrap">
+      <div id="lineNos">1</div>
+      <div id="edStack">
+        <pre id="hl"></pre>
+        <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <div id="edEmpty"><div style="font-size:30px">⚡</div><div>左の ISSUES から課題を選んで「着手」すると、<br>対象ファイルがここに開きます。</div></div>
+      </div>
+    </div>
+    <div id="bottom">
+      <div class="tabs" id="bottomTabs">
+        <button data-tab="tbTerminal" class="on">Terminal</button>
+        <button data-tab="tbGit">Git<span class="dot" id="dotGit"></span></button>
+        <button data-tab="tbBuild">Build<span class="dot" id="dotBuild"></span></button>
+        <button data-tab="tbNotif">通知<span class="dot" id="dotNotif"></span></button>
+        <span class="sp"></span>
+        <button id="btnBottomMin" style="border:none;background:transparent;color:var(--faint)">▾</button>
+      </div>
+      <div class="tabbody on" id="tbTerminal">
+        <div id="termOut"></div>
+        <div id="termLine"><span class="ps">catalyst:~$</span><input id="termIn" placeholder="help と入力してみよう"></div>
+      </div>
+      <div class="tabbody" id="tbGit">
+        <div id="gitHead">
+          <span class="br" id="gitBranch">⎇ main</span>
+          <input id="commitMsg" placeholder="コミットメッセージ">
+          <button id="btnCommit" class="sm">Commit</button>
+          <button id="btnPush" class="sm">Push</button>
+          <button id="btnPull" class="sm">Pull</button>
+        </div>
+        <div id="gitLog"></div>
+      </div>
+      <div class="tabbody" id="tbBuild">
+        <div id="buildStatus">
+          <span id="buildLamp"></span>
+          <b id="buildText">まだBuildしていません</b>
+          <span class="sp"></span>
+          <button id="btnBuild2" class="acc sm">▶ Build 実行</button>
+          <button id="btnPreview" class="sm">🕹 CodeCraft Chronicles を起動</button>
+        </div>
+        <div class="panel-h" style="padding-left:0">実装済みシステム</div>
+        <div id="buildFeats"></div>
+      </div>
+      <div class="tabbody" id="tbNotif"><div id="notifList" style="width:100%"></div></div>
+    </div>
+  </main>
+
+  <aside id="right">
+    <div class="tabs" id="rightTabs">
+      <button data-tab="rbIssue" class="on">Issue</button>
+      <button data-tab="rbReview">レビュー<span class="dot" id="dotRev"></span></button>
+      <button data-tab="rbConsole">Console<span class="dot" id="dotCon"></span></button>
+      <button data-tab="rbChat">チャット<span class="dot" id="dotChat"></span></button>
+    </div>
+    <div class="tabbody on" id="rbIssue"></div>
+    <div class="tabbody" id="rbReview"></div>
+    <div class="tabbody" id="rbConsole"></div>
+    <div class="tabbody" id="rbChat">
+      <div id="chatMsgs"></div>
+      <div id="chatLine"><input id="chatIn" placeholder="メッセージを送る"><button id="btnChat" class="sm">送信</button></div>
+    </div>
+  </aside>
+</div>
+
+<footer id="statusbar">
+  <span class="seg">⎇ <b id="sbBranch">main</b></span>
+  <span class="seg">Issue <b id="sbIssues">0 / 0</b></span>
+  <span class="seg">Build <b id="sbBuild">-</b></span>
+  <span class="seg" id="sbPhase">Phase 1 開発環境</span>
+  <span class="sp"></span>
+  <span class="seg">CodeCraft Chronicles 完成率 <b id="sbPct">0%</b></span>
+  <div id="sbBar"><i id="sbBarFill"></i></div>
+</footer>
+
+<!-- intro modal -->
+<div class="modal on" id="introModal">
+  <div class="box">
+    <h2>⚡ Catalyst Studio へようこそ</h2>
+    <div class="tag">CREATE WORLDS. LEARN EVERYTHING.</div>
+    <p>今日からあなたは、当スタジオの新人ゲーム開発者です。<br>
+    現在開発中のタイトルは 2DアクションRPG<b style="color:var(--text)">『CodeCraft Chronicles』</b>。<br>
+    ……と言っても、まだ主人公が歩けるだけの未完成品です。</p>
+    <p>あなたの仕事は、チームから届く開発タスク「Issue」を一つずつ完了させて、このゲームを完成させること。仕様書を読み、C#のコードを書き、Buildして、レビューを通す。本物の開発と同じ流れです。</p>
+    <p>まずは左のISSUESパネルから <code style="font-family:var(--mono);background:var(--raised);padding:1px 6px;border-radius:5px">ISSUE-0001</code> を選んでみてください。困ったら右下のチャットに先輩がいます。</p>
+    <div class="foot"><button class="acc" id="btnStart">出社する</button></div>
+  </div>
+</div>
+
+<!-- preview modal -->
+<div class="modal" id="pvModal">
+  <div class="box" id="pvBox">
+    <h2 style="font-size:16px">🕹 CodeCraft Chronicles <span id="pvVer" style="color:var(--faint);font-size:12px"></span></h2>
+    <div class="tag">開発中ビルド — 実装したシステムだけが動きます</div>
+    <div id="pvWrap"><canvas id="game" width="640" height="384" tabindex="0"></canvas></div>
+    <div id="pvHud">
+      <button id="btnCccSave" class="sm" disabled title="SaveSystem実装後に有効化">💾 セーブ</button>
+      <span id="pvMsg"></span>
+      <span class="sp"></span>
+      <button id="btnPvClose" class="sm">閉じる</button>
+    </div>
+    <div id="touchUI">
+      <div id="dpad">
+        <span></span><button data-k="up">▲</button><span></span>
+        <button data-k="left">◀</button><span></span><button data-k="right">▶</button>
+        <span></span><button data-k="down">▼</button><span></span>
+      </div>
+      <div id="abtns">
+        <button id="tbtnB">話す<br>E</button>
+        <button id="tbtnI">道具<br>I</button>
+        <button id="tbtnA">攻撃<br>A</button>
+      </div>
+    </div>
+    <div id="pvKeys"><kbd>←↑↓→</kbd>/<kbd>WASD</kbd> 移動　<kbd>Space</kbd> 攻撃（戦闘実装後）　<kbd>E</kbd> 話す（NPC実装後）　<kbd>I</kbd> インベントリ（実装後）</div>
+  </div>
+</div>
+<script>
+"use strict";
+/* =========================================================
+   Catalyst v0.1 — ゲームをつくるゲーム
+   単一HTML / 外部依存なし / localStorage保存
+========================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const now = () => { const d=new Date(); return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0"); };
+const SAVE_KEY = "catalyst_save_v2";
+
+/* ---------- スタッフ ---------- */
+const STAFF = {
+  nishino: { name:"西野", role:"リーダー", av:"🧑‍💼" },
+  makabe:  { name:"真壁", role:"先輩エンジニア", av:"👩‍💻" },
+  sudo:    { name:"須藤", role:"プランナー", av:"🎨" },
+  me:      { name:"あなた", role:"新人プログラマー", av:"👤" }
+};
+
+/* ---------- 状態 ---------- */
+let state = null;
+function defaultState(){
+  return {
+    version: 1,
+    files: {},            // path -> { content, committed }
+    issues: {},           // id -> { status: locked|open|wip|built|done }
+    currentIssue: null,
+    openFile: null,
+    git: { branch: "main", commits: [], ahead: 0 },
+    chat: [], notifs: [], consoleLines: [],
+    lastBuild: null,       // { ok, when }
+    ccc: { save: null, cleared: false },
+    exported: false,
+    started: false
+  };
+}
+let saveTimer = null;
+function persist(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }, 250);
+}
+
+/* ---------- 初期ファイル ---------- */
+const BASE_FILES = {
+  "Scripts/Welcome.cs": null,        // Issue着手時にテンプレ展開
+  "Scenes/Town.scene": "# シーン定義（読み取り専用）\n# マップ: はじまりの町 / 20x12\n# 配置: Player, NPC(案内人), Slime x3",
+  "Prefabs/Player.prefab": "# Player プレハブ（読み取り専用）\n# Sprite: hero_16x16\n# アタッチ予定: PlayerStats, PlayerController",
+  "Data/GameConfig.json": '{\n  "title": "CodeCraft Chronicles",\n  "genre": "2D Action RPG",\n  "targetVersion": "1.0"\n}',
+  "Settings/ProjectSettings.txt": "# プロジェクト設定（読み取り専用）\nresolution=640x384\npixelPerfect=true"
+};
+const READONLY = p => !p.startsWith("Scripts/");
+
+/* =========================================================
+   タブ切替
+========================================================= */
+function bindTabs(barId){
+  const bar = $(barId);
+  bar.querySelectorAll("button[data-tab]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      bar.querySelectorAll("button[data-tab]").forEach(b=>b.classList.remove("on"));
+      btn.classList.add("on");
+      const host = bar.parentElement;
+      host.querySelectorAll(":scope > .tabbody").forEach(tb=>tb.classList.remove("on"));
+      $(btn.dataset.tab).classList.add("on");
+      const dot = btn.querySelector(".dot"); if(dot) dot.classList.remove("show");
+      if(barId==="bottomTabs") $("bottom").classList.remove("min");
+      if(btn.dataset.tab==="rbChat") scrollChat();
+    });
+  });
+}
+function openTab(tabId){
+  const btn = document.querySelector(`[data-tab="${tabId}"]`);
+  if(btn) btn.click();
+}
+function dot(id){ const d=$(id); if(d) d.classList.add("show"); }
+
+/* =========================================================
+   Console / 通知 / チャット / Terminal
+========================================================= */
+function clog(type, text){
+  state.consoleLines.push({ type, text, when: now() });
+  if(state.consoleLines.length > 400) state.consoleLines.shift();
+  renderConsole();
+  if(type==="err"||type==="warn") dot("dotCon");
+  persist();
+}
+function renderConsole(){
+  const el = $("rbConsole");
+  el.innerHTML = state.consoleLines.map(l=>`<div class="${l.type}">[${l.when}] ${esc(l.text)}</div>`).join("") || '<div class="info">// Buildするとここに結果が出ます</div>';
+  el.scrollTop = el.scrollHeight;
+}
+function notify(icon, text){
+  state.notifs.unshift({ icon, text, when: now() });
+  if(state.notifs.length>60) state.notifs.pop();
+  renderNotifs(); dot("dotNotif"); persist();
+}
+function renderNotifs(){
+  $("notifList").innerHTML = state.notifs.map(n=>`<div class="ntf"><span class="ic">${n.icon}</span><span>${esc(n.text)}</span><span class="when">${n.when}</span></div>`).join("") || '<div class="ntf"><span>通知はまだありません</span></div>';
+}
+function chatMsg(who, text, silent){
+  state.chat.push({ who, text, when: now() });
+  if(state.chat.length>200) state.chat.shift();
+  renderChat();
+  if(!silent && who!=="me") dot("dotChat");
+  persist();
+}
+function renderChat(){
+  const p = STAFF;
+  $("chatMsgs").innerHTML = state.chat.map(m=>{
+    const s = p[m.who]||p.me;
+    return `<div class="msg ${m.who==="me"?"me":""}"><div class="av">${s.av}</div><div class="bd"><div class="who"><b>${s.name}</b>（${s.role}） ${m.when}</div><div class="tx">${esc(m.text)}</div></div></div>`;
+  }).join("");
+  scrollChat();
+}
+function scrollChat(){ const el=$("chatMsgs"); el.scrollTop = el.scrollHeight; }
+
+function termPrint(text, isCmd){
+  const el = $("termOut");
+  el.insertAdjacentHTML("beforeend", `<div class="${isCmd?"cmd":""}">${esc(text)}</div>`);
+  el.scrollTop = el.scrollHeight;
+}
+function termExec(cmd){
+  termPrint("catalyst:~$ " + cmd, true);
+  const c = cmd.trim();
+  if(!c) return;
+  const [head, ...rest] = c.split(/\s+/);
+  switch(head){
+    case "help":
+      termPrint("使えるコマンド: help / ls / cat <file> / git status / git log / build / whoami / clear");
+      break;
+    case "ls":
+      termPrint(Object.keys(state.files).join("   ") || "(ファイルなし)");
+      onAction("terminal-ls");
+      break;
+    case "cat": {
+      const f = rest.join(" ");
+      if(state.files[f]){ termPrint(state.files[f].content.slice(0,600)); onAction("terminal-cat"); }
+      else termPrint("cat: " + f + ": ファイルがありません");
+      break;
+    }
+    case "git":
+      if(rest[0]==="status"){
+        const dirty = Object.entries(state.files).filter(([p,f])=>!f.committed).map(([p])=>p);
+        termPrint("On branch main");
+        termPrint(dirty.length? "未コミットの変更: " + dirty.join(", ") : "nothing to commit, working tree clean");
+      } else if(rest[0]==="log"){
+        state.git.commits.slice(-5).forEach(cm=>termPrint(cm.hash+" "+cm.msg));
+        if(!state.git.commits.length) termPrint("(まだコミットがありません)");
+      } else termPrint("git: '"+(rest[0]||"")+"' は未対応です（status / log）");
+      break;
+    case "build": doBuild(); break;
+    case "whoami": termPrint("新人プログラマー（入社1日目）"); break;
+    case "clear": $("termOut").innerHTML=""; break;
+    default: termPrint(head + ": コマンドが見つかりません。help で一覧を表示します。");
+  }
+}
+
+/* =========================================================
+   エクスプローラ / エディタ
+========================================================= */
+function renderExplorer(){
+  const folders = {};
+  Object.keys(state.files).sort().forEach(p=>{
+    const [dir, ...restParts] = p.split("/");
+    (folders[dir] = folders[dir]||[]).push(p);
+  });
+  ["Scripts","Scenes","Prefabs","Data","Settings"].forEach(d=>{ if(!folders[d]) folders[d]=[]; });
+  let html = "";
+  Object.keys(folders).sort((a,b)=>{
+    const order=["Scripts","Scenes","Prefabs","Data","Settings"];
+    return order.indexOf(a)-order.indexOf(b);
+  }).forEach(dir=>{
+    html += `<div class="tree-folder">📁 ${esc(dir)}</div>`;
+    if(!folders[dir].length) html += `<div class="tree-empty">（空）</div>`;
+    folders[dir].forEach(p=>{
+      const f = state.files[p];
+      const nm = p.split("/").slice(1).join("/");
+      html += `<div class="tree-file ${p===state.openFile?"active":""}" data-path="${esc(p)}">${esc(nm)}${f.committed?"":' <span class="dirty">●</span>'}</div>`;
+    });
+  });
+  $("explorer").innerHTML = html;
+  $("explorer").querySelectorAll(".tree-file").forEach(el=>{
+    el.addEventListener("click", ()=>openFile(el.dataset.path));
+  });
+}
+
+function openFile(path){
+  state.openFile = path;
+  const f = state.files[path];
+  $("edEmpty").style.display = "none";
+  $("edFile").innerHTML = `<b>${esc(path)}</b>` + (READONLY(path) ? ' <span style="color:var(--faint)">（読み取り専用）</span>' : "");
+  const ta = $("code");
+  ta.value = f.content;
+  ta.readOnly = READONLY(path);
+  refreshEditor();
+  renderExplorer();
+  persist();
+}
+
+function highlightCs(src){
+  let h = esc(src);
+  // コメント・文字列を先にマーク（プレースホルダ方式）
+  const stash = [];
+  h = h.replace(/(\/\/[^\n]*)|("[^"\n]*")/g, m=>{
+    stash.push(m.startsWith("//") ? `<span class="c">${m}</span>` : `<span class="s">${m}</span>`);
+    return "\u0001" + String(stash.length-1).replace(/\d/g, d=>"ABCDEFGHIJ"[+d]) + "\u0001";
+  });
+  h = h.replace(/\b(using|namespace|public|private|protected|static|void|class|interface|new|return|if|else|for|foreach|while|in|switch|case|break|continue|virtual|override|event|delegate|const|readonly|this|base|null|true|false|var|get|set)\b/g, '<span class="k">$1</span>');
+  h = h.replace(/\b(int|string|bool|float|double|List|Dictionary|MonoBehaviour|Vector2|Vector3|GameObject|Transform|Input|Collision2D|Collider2D|JsonUtility|PlayerPrefs|Random|Mathf|Debug)\b/g, '<span class="ty">$1</span>');
+  h = h.replace(/\b(\d+(?:\.\d+)?f?)\b/g, '<span class="n">$1</span>');
+  h = h.replace(/\u0001([A-J]+)\u0001/g, (m,i)=>stash[parseInt(i.replace(/[A-J]/g, c=>"ABCDEFGHIJ".indexOf(c)), 10)]);
+  return h;
+}
+
+function refreshEditor(){
+  const ta = $("code");
+  $("hl").innerHTML = highlightCs(ta.value) + "\n";
+  const lines = ta.value.split("\n").length;
+  $("lineNos").innerHTML = Array.from({length:lines},(_,i)=>i+1).join("<br>");
+  syncScroll();
+  const f = state.openFile && state.files[state.openFile];
+  $("edDirty").style.visibility = (f && f.content!==ta.value) ? "visible" : "hidden";
+}
+function syncScroll(){
+  const ta=$("code");
+  $("hl").scrollTop = ta.scrollTop; $("hl").scrollLeft = ta.scrollLeft;
+  $("lineNos").scrollTop = ta.scrollTop;
+}
+function saveFile(){
+  if(!state.openFile) return;
+  if(READONLY(state.openFile)){ clog("warn", state.openFile + " は読み取り専用です"); return; }
+  const f = state.files[state.openFile];
+  if(f.content !== $("code").value){ f.content = $("code").value; f.committed = false; }
+  $("edDirty").style.visibility = "hidden";
+  clog("info", "保存しました: " + state.openFile);
+  onAction("save");
+  renderExplorer(); persist();
+}
+
+/* 検索・置換・スニペット */
+function findNext(){
+  const q = $("findIn").value; if(!q) return;
+  const ta = $("code");
+  const from = ta.selectionEnd || 0;
+  let idx = ta.value.indexOf(q, from);
+  if(idx<0) idx = ta.value.indexOf(q, 0);
+  if(idx<0){ clog("warn", `「${q}」は見つかりませんでした`); return; }
+  ta.focus(); ta.setSelectionRange(idx, idx+q.length);
+}
+function replaceOne(){
+  const q=$("findIn").value, r=$("replIn").value; if(!q) return;
+  const ta=$("code");
+  const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+  if(sel===q){
+    ta.setRangeText(r, ta.selectionStart, ta.selectionEnd, "end");
+    refreshEditor();
+  }
+  findNext();
+}
+function replaceAllTxt(){
+  const q=$("findIn").value, r=$("replIn").value; if(!q) return;
+  const ta=$("code");
+  const n = ta.value.split(q).length-1;
+  ta.value = ta.value.split(q).join(r);
+  refreshEditor();
+  clog("info", `${n} 件置換しました`);
+}
+const SNIPPETS = {
+  if: "if (条件) {\n    \n}",
+  for: "for (int i = 0; i < 10; i++) {\n    \n}",
+  foreach: "foreach (var item in items) {\n    \n}",
+  method: "public void メソッド名() {\n    \n}",
+  class: "public class クラス名 {\n    \n}",
+  prop: "public int 値 { get; set; }"
+};
+function insertSnippet(key){
+  if(!key || !SNIPPETS[key]) return;
+  const ta=$("code");
+  if(ta.readOnly) return;
+  ta.setRangeText(SNIPPETS[key], ta.selectionStart, ta.selectionEnd, "end");
+  ta.focus(); refreshEditor();
+}
+</script>
+<script>
+"use strict";
+/* =========================================================
+   Issue コンテンツ（Phase1〜7 / 20 Issue）
+   checks: [{file?, re, msg, hint}] / action: build|commit|terminal-ls|export
+========================================================= */
+const PHASES = [
+  { no:1, name:"開発環境" }, { no:2, name:"C#基礎" }, { no:3, name:"C#応用" },
+  { no:4, name:"Unity基礎" }, { no:5, name:"ゲームシステム" }, { no:6, name:"ゲーム完成" }, { no:7, name:"Unity出力" }
+];
+const ISSUES = [
+{ id:"ISSUE-0001", phase:1, lv:1, cat:"環境", feature:"オンボーディング", title:"出社初日：エディタに慣れる",
+  summary:"エディタでコメントを書いて、保存→Buildの流れを体験する。",
+  file:"Scripts/Welcome.cs", learn:["エディタ操作","コメント構文","Buildの流れ"],
+  template:"// Welcome.cs\n// Catalyst Studio へようこそ。ここはあなたの作業ファイルです。\n//\n// 【やること】\n// この下の行に、次の1行をそのまま入力してください。\n// // Hello Catalyst\n\n",
+  spec:{ goal:"C#のコメント（// で始まる行）を自分で入力し、保存してBuildを通す。",
+    knowledge:"// から行末までは「コメント」として扱われ、プログラムとしては実行されません。メモや説明を残すのに使います。",
+    example:"// Hello Catalyst" },
+  checks:[ { re:/^\s*\/\/\s*Hello Catalyst/m, msg:"コメント行「// Hello Catalyst」が見つかりません", hint:"半角スラッシュを2つ書いてから Hello Catalyst と入力してね。大文字小文字もそのままで。" } ] },
+
+{ id:"ISSUE-0002", phase:1, lv:1, cat:"環境", feature:"オンボーディング", title:"変更を保存する",
+  summary:"エディタで編集した内容を保存し、未保存マーク（●）の意味を覚える。",
+  file:"Scripts/Welcome.cs", learn:["保存","未保存マーク","Ctrl+S"], action:"save",
+  spec:{ goal:"Scripts/Welcome.cs を開いて何か1文字でも編集し、「保存」ボタン（または Ctrl+S / ⌘S）で保存する。",
+    knowledge:"ファイル名の横の ● は「未保存の変更あり」の印。保存するまでBuildには反映されません。",
+    example:"// 好きなコメントを1行足して保存すればOK" }, checks:[] },
+
+{ id:"ISSUE-0003", phase:1, lv:1, cat:"Git", feature:"オンボーディング", title:"はじめてのGit：変更をコミットする",
+  summary:"下のGitパネルから、さっきの変更をコミットして記録に残す。",
+  file:null, learn:["バージョン管理の考え方","commit"], action:"commit",
+  spec:{ goal:"画面下のGitタブでコミットメッセージを入力し、Commitボタンを押す。",
+    knowledge:"コミットは「作業のセーブポイント」。小さくこまめに残すのが現場の基本です。メッセージは「何をしたか」が後から分かるように書きます。",
+    example:"例：「Welcome.cs にはじめてのコメントを追加」" }, checks:[] },
+
+{ id:"ISSUE-0004", phase:1, lv:1, cat:"環境", feature:"オンボーディング", title:"ターミナルに触れてみる",
+  summary:"ターミナルで ls コマンドを実行し、プロジェクトのファイル一覧を確認する。",
+  file:null, learn:["CLIの基本","ls"], action:"terminal-ls",
+  spec:{ goal:"画面下のTerminalタブで ls と入力して Enter。",
+    knowledge:"開発者はマウスよりキーボードで環境を操作することが多いです。ls はファイル一覧を表示する基本コマンド。help で他のコマンドも見られます。",
+    example:"ls" }, checks:[] },
+
+{ id:"ISSUE-0005", phase:1, lv:1, cat:"環境", feature:"オンボーディング", title:"ファイルの中身をターミナルで見る",
+  summary:"cat コマンドでファイルの中身を表示する。",
+  file:null, learn:["cat","CLIの引数"], action:"terminal-cat",
+  spec:{ goal:"Terminalタブで cat Scripts/Welcome.cs のように入力して、ファイルの中身を表示する。",
+    knowledge:"cat はファイルの内容をその場で確認する定番コマンド。コマンドの後ろに空白区切りで渡す文字列を「引数」と呼びます。",
+    example:"cat Scripts/Welcome.cs" }, checks:[] },
+
+{ id:"ISSUE-0006", phase:1, lv:1, cat:"Git", feature:"オンボーディング", title:"リモートに Push する",
+  summary:"コミットをチームのリモートリポジトリに Push する。",
+  file:null, learn:["push","リモートリポジトリ"], action:"push",
+  spec:{ goal:"画面下のGitタブで Push ボタンを押す。",
+    knowledge:"コミットは自分の手元だけの記録。Push して初めてチーム全員が見られる場所（リモート）に反映されます。",
+    example:"Gitタブ → Push" }, checks:[] },
+
+{ id:"ISSUE-0007", phase:2, lv:1, cat:"C#", feature:"プレイヤーステータス", title:"変数：主人公のステータスを定義する",
+  summary:"PlayerStats クラスにHPと攻撃力の変数を定義する。完了するとゲーム画面にHPバーが出る。",
+  file:"Scripts/PlayerStats.cs", learn:["変数","int型","クラスの入れ物としての役割"], unlock:"hud",
+  template:"// PlayerStats.cs\n// 主人公のステータスをまとめるクラスです。\n// 【やること】仕様書のとおりクラスと変数を定義しよう。\n\n",
+  spec:{ goal:"PlayerStats クラスを作り、hp（初期値100）と attackPower（初期値10）を2つの int 変数として定義する。",
+    io:"入力：なし / 出力：なし（値を保持するだけのクラス）",
+    knowledge:"変数は「値を入れておく箱」。int は整数専用の型です。public を付けると他のコードからも見えます。",
+    example:"public class PlayerStats {\n    public int hp = 100;\n    public int attackPower = 10;\n}" },
+  checks:[
+    { re:/class\s+PlayerStats/, msg:"PlayerStats クラスがありません", hint:"public class PlayerStats { ... } の形で定義します。" },
+    { re:/int\s+hp\s*=\s*100\s*;/, msg:"int hp = 100; がありません", hint:"クラスの中に public int hp = 100; を書きます。行末のセミコロンを忘れずに。" },
+    { re:/int\s+attackPower\s*=\s*10\s*;/, msg:"int attackPower = 10; がありません", hint:"hp と同じ要領でもう一つ変数を追加します。" } ] },
+
+{ id:"ISSUE-0008", phase:2, lv:1, cat:"C#", feature:"プレイヤーステータス", title:"演算子：レベルと経験値を持たせる",
+  summary:"PlayerStats に level と exp を追加し、次のレベルまでの必要経験値を計算する。",
+  file:"Scripts/PlayerStats.cs", learn:["算術演算子","式と計算"],
+  spec:{ goal:"int level（初期値1）と int exp（初期値0）を追加し、「次のレベルに必要な経験値 = level * 100」を返す ExpToNext() メソッドを作る。",
+    io:"入力：なし / 出力：int（必要経験値）",
+    knowledge:"+ - * / は算術演算子。掛け算は * を使います。式の結果を return でそのまま返せます。",
+    example:"public int level = 1;\npublic int exp = 0;\n\npublic int ExpToNext() {\n    return level * 100;\n}" },
+  checks:[
+    { re:/int\s+level\s*=\s*1\s*;/, msg:"int level = 1; がありません", hint:"public int level = 1; をクラスに追加します。" },
+    { re:/int\s+exp\s*=\s*0\s*;/, msg:"int exp = 0; がありません", hint:"public int exp = 0; を追加します。" },
+    { re:/int\s+ExpToNext\s*\(\s*\)/, msg:"ExpToNext() メソッドがありません", hint:"public int ExpToNext() { ... } の形です。" },
+    { re:/return\s+level\s*\*\s*100/, msg:"level * 100 を返していません", hint:"return level * 100; と書きます。" } ] },
+
+{ id:"ISSUE-0009", phase:2, lv:2, cat:"C#", feature:"プレイヤーステータス", title:"条件分岐：ダメージ処理を書く",
+  summary:"TakeDamage メソッドを追加し、HPが0以下になったら戦闘不能にする。",
+  file:"Scripts/PlayerStats.cs", learn:["if文","bool型","メソッドの引数"],
+  spec:{ goal:"PlayerStats に bool isDead 変数と TakeDamage(int damage) メソッドを追加。hp から damage を引き、hp が 0 以下なら isDead を true にする。",
+    io:"入力：damage（受けるダメージ量）/ 出力：なし（hp と isDead を更新）",
+    knowledge:"if (条件) { ... } で「条件が成立したときだけ実行」できます。hp <= 0 は「hpが0以下」という意味。",
+    example:"public bool isDead = false;\n\npublic void TakeDamage(int damage) {\n    hp = hp - damage;\n    if (hp <= 0) {\n        hp = 0;\n        isDead = true;\n    }\n}" },
+  checks:[
+    { re:/bool\s+isDead/, msg:"bool isDead 変数がありません", hint:"public bool isDead = false; をクラスに追加します。" },
+    { re:/void\s+TakeDamage\s*\(\s*int\s+\w+\s*\)/, msg:"TakeDamage(int …) メソッドがありません", hint:"public void TakeDamage(int damage) { ... } の形です。" },
+    { re:/if\s*\(\s*hp\s*<=\s*0\s*\)/, msg:"if (hp <= 0) の判定がありません", hint:"ダメージを引いたあとに hp をチェックします。" },
+    { re:/isDead\s*=\s*true/, msg:"isDead を true にする処理がありません", hint:"if の中で isDead = true; します。" } ] },
+
+{ id:"ISSUE-0010", phase:2, lv:2, cat:"C#", feature:"プレイヤーステータス", title:"上限ガード：回復処理を書く",
+  summary:"Heal メソッドを追加し、HPが上限を超えないようにする。",
+  file:"Scripts/PlayerStats.cs", learn:["ifによる上限ガード","境界値"],
+  spec:{ goal:"Heal(int amount) メソッドを追加。hp に amount を足し、hp が 100 を超えたら 100 に戻す。",
+    io:"入力：amount（回復量）/ 出力：なし",
+    knowledge:"体力が満タンを超えないようにするのが「上限ガード」。ゲーム開発では頜出するパターンです。",
+    example:"public void Heal(int amount) {\n    hp = hp + amount;\n    if (hp > 100) {\n        hp = 100;\n    }\n}" },
+  checks:[
+    { re:/void\s+Heal\s*\(\s*int\s+\w+\s*\)/, msg:"Heal(int …) メソッドがありません", hint:"public void Heal(int amount) { ... } の形です。" },
+    { re:/if\s*\(\s*hp\s*>\s*100\s*\)/, msg:"if (hp > 100) の判定がありません", hint:"回復後に上限をチェックします。" },
+    { re:/hp\s*=\s*100\s*;/, msg:"hp を 100 に戻す処理がありません", hint:"if の中で hp = 100; します。" } ] },
+
+{ id:"ISSUE-0011", phase:2, lv:2, cat:"C#", feature:"プレイヤーステータス", title:"switch文：ランク判定を作る",
+  summary:"レベルに応じたランク名を switch で返す。",
+  file:"Scripts/PlayerStats.cs", learn:["switch文","case / default"],
+  spec:{ goal:"GetRank() メソッドを追加。level が 1 なら \"見習い\"、2 なら \"一人前\"、それ以外は \"ベテラン\" を返す。",
+    io:"入力：なし / 出力：string（ランク名）",
+    knowledge:"分岐が多いときは if の連続より switch が読みやすい。case ごとに break か return で抜けます。default は「どれにも当てはまらないとき」。",
+    example:"public string GetRank() {\n    switch (level) {\n        case 1: return \"見習い\";\n        case 2: return \"一人前\";\n        default: return \"ベテラン\";\n    }\n}" },
+  checks:[
+    { re:/string\s+GetRank\s*\(\s*\)/, msg:"GetRank() メソッドがありません", hint:"public string GetRank() { ... } の形です。" },
+    { re:/switch\s*\(\s*level\s*\)/, msg:"switch (level) がありません", hint:"switch (level) { case 1: ... } の形で分岐します。" },
+    { re:/case\s+1\s*:/, msg:"case 1: がありません", hint:"case 1: return \"見習い\"; のように書きます。" },
+    { re:/default\s*:/, msg:"default: がありません", hint:"どのcaseにも当てはまらないときの処理を default: に書きます。" } ] },
+
+{ id:"ISSUE-0012", phase:2, lv:2, cat:"C#", feature:"インベントリ", title:"配列と繰り返し：所持品の枠を用意する",
+  summary:"Inventory クラスに8個のアイテム枠（配列）を作り、for文で初期化する。",
+  file:"Scripts/Inventory.cs", learn:["配列","for文","インデックス"],
+  template:"// Inventory.cs\n// 所持アイテムを管理するクラスです。\n\npublic class Inventory {\n    // 【やること】仕様書のとおり配列と初期化処理を書こう\n\n}\n",
+  spec:{ goal:"string型の配列 slots を要素数8で作り、Init メソッドの中で for文を使って全部の枠に \"empty\" を入れる。",
+    io:"入力：なし / 出力：なし（slots を初期化）",
+    knowledge:"配列は「同じ型の箱を横に並べたもの」。slots[0] から slots[7] まで8個。for文を使うと同じ処理を繰り返せます。",
+    example:"public string[] slots = new string[8];\n\npublic void Init() {\n    for (int i = 0; i < 8; i++) {\n        slots[i] = \"empty\";\n    }\n}" },
+  checks:[
+    { re:/string\[\]\s+slots\s*=\s*new\s+string\[\s*8\s*\]/, msg:"要素数8の配列 slots がありません", hint:"public string[] slots = new string[8]; と書きます。" },
+    { re:/for\s*\(\s*int\s+i\s*=\s*0/, msg:"for文がありません", hint:"for (int i = 0; i < 8; i++) { ... } の形です。" },
+    { re:/slots\[\s*i\s*\]\s*=/, msg:"ループ内で slots[i] に代入していません", hint:"slots[i] = \"empty\"; で各枠を初期化します。" } ] },
+
+{ id:"ISSUE-0013", phase:2, lv:2, cat:"C#", feature:"インベントリ", title:"while文：空き枚を数える",
+  summary:"while ループでインベントリの空きスロット数を数える。",
+  file:"Scripts/Inventory.cs", learn:["while文","カウンタ変数"],
+  spec:{ goal:"CountEmpty() メソッドを追加。while を使って slots の中の \"空\" の数を数えて返す。",
+    io:"入力：なし / 出力：int（空き枚数）",
+    knowledge:"while (条件) { ... } は条件が成立する間繰り返します。カウンタを自分で進めないと無限ループになるので注意。",
+    example:"public int CountEmpty() {\n    int count2 = 0;\n    int i = 0;\n    while (i < slots.Length) {\n        if (slots[i] == \"空\") {\n            count2 = count2 + 1;\n        }\n        i = i + 1;\n    }\n    return count2;\n}" },
+  checks:[
+    { re:/int\s+CountEmpty\s*\(\s*\)/, msg:"CountEmpty() メソッドがありません", hint:"public int CountEmpty() { ... } の形です。" },
+    { re:/while\s*\(/, msg:"while ループがありません", hint:"while (i < slots.Length) { ... } で繰り返します。" },
+    { re:/slots\.Length/, msg:"slots.Length を使っていません", hint:"配列の長さは slots.Length で取れます。" } ] },
+
+{ id:"ISSUE-0014", phase:2, lv:2, cat:"C#", feature:"インベントリ", title:"List：アイテムを自由に増やせるようにする",
+  summary:"固定長の配列から、伸び縮みする List にアップグレードする。",
+  file:"Scripts/Inventory.cs", learn:["List<T>","using","Addメソッド"],
+  spec:{ goal:"ファイル先頭に using System.Collections.Generic; を追加し、List<string> items と AddItem(string name) メソッドを作る。",
+    io:"入力：name（アイテム名）/ 出力：なし（items に追加）",
+    knowledge:"List は「長さが自動で伸びる配列」。使うにはファイルの先頭で using 宣言が必要です。Add で末尾に追加できます。",
+    example:"using System.Collections.Generic;\n\n// クラスの中に：\npublic List<string> items = new List<string>();\n\npublic void AddItem(string name) {\n    items.Add(name);\n}" },
+  checks:[
+    { re:/using\s+System\.Collections\.Generic\s*;/, msg:"using System.Collections.Generic; がありません", hint:"ファイルの一番上に書きます。" },
+    { re:/List<string>\s+items\s*=\s*new\s+List<string>\s*\(\s*\)/, msg:"List<string> items の初期化がありません", hint:"public List<string> items = new List<string>(); と書きます。" },
+    { re:/void\s+AddItem\s*\(\s*string\s+\w+\s*\)/, msg:"AddItem(string …) メソッドがありません", hint:"public void AddItem(string name) { ... } の形です。" },
+    { re:/items\.Add\s*\(/, msg:"items.Add(…) の呼び出しがありません", hint:"メソッドの中で items.Add(name); します。" } ] },
+
+{ id:"ISSUE-0015", phase:2, lv:2, cat:"C#", feature:"インベントリ", title:"List操作：アイテムを捨てられるようにする",
+  summary:"Contains で確認してから Remove する安全な削除処理を作る。",
+  file:"Scripts/Inventory.cs", learn:["List.Contains","List.Remove","boolを返す設計"],
+  spec:{ goal:"RemoveItem(string name2) メソッドを追加。items に name2 があれば Remove して true、なければ false を返す。",
+    io:"入力：name2（アイテム名）/ 出力：bool（削除できたか）",
+    knowledge:"「ある前提」で操作するとバグの元。Contains で存在確認してから操作するのが安全です。",
+    example:"public bool RemoveItem(string name2) {\n    if (items.Contains(name2)) {\n        items.Remove(name2);\n        return true;\n    }\n    return false;\n}" },
+  checks:[
+    { re:/bool\s+RemoveItem\s*\(\s*string\s+\w+\s*\)/, msg:"RemoveItem(string …) メソッドがありません", hint:"public bool RemoveItem(string name2) { ... } の形です。" },
+    { re:/items\.Contains\s*\(/, msg:"Contains での存在確認がありません", hint:"if (items.Contains(name2)) { ... } で確認します。" },
+    { re:/items\.Remove\s*\(/, msg:"Remove での削除がありません", hint:"items.Remove(name2); で削除します。" } ] },
+
+{ id:"ISSUE-0016", phase:2, lv:2, cat:"C#", feature:"プレイヤー", title:"メソッドと戻り値：ダメージ計算",
+  summary:"Player クラスに、武器の威力を受け取って合計攻撃力を返すメソッドを作る。",
+  file:"Scripts/Player.cs", learn:["戻り値","return","引数との計算"],
+  template:"// Player.cs\n// 主人公本体の処理をまとめるクラスです。\n\npublic class Player {\n    public int attackPower = 10;\n\n    // 【やること】CalcDamage メソッドを追加しよう\n\n}\n",
+  spec:{ goal:"int を返す CalcDamage(int weaponPower) メソッドを作り、attackPower + weaponPower の結果を return する。",
+    io:"入力：weaponPower（武器の威力）/ 出力：合計攻撃力（int）",
+    knowledge:"これまでの void は「何も返さない」。戻り値の型を int にすると、return で計算結果を呼び出し元に渡せます。",
+    example:"public int CalcDamage(int weaponPower) {\n    return attackPower + weaponPower;\n}" },
+  checks:[
+    { re:/class\s+Player\b/, msg:"Player クラスがありません", hint:"テンプレートのクラスを消さないでね。" },
+    { re:/public\s+int\s+CalcDamage\s*\(\s*int\s+\w+\s*\)/, msg:"int を返す CalcDamage(int …) がありません", hint:"void ではなく public int CalcDamage(int weaponPower) と書きます。" },
+    { re:/return\s+\w+\s*\+\s*\w+\s*;/, msg:"合計を return していません", hint:"return attackPower + weaponPower; のように足し算の結果を返します。" } ] },
+
+{ id:"ISSUE-0017", phase:2, lv:3, cat:"C#", feature:"プレイヤー", title:"オーバーロード：ボーナス付きダメージ計算",
+  summary:"同じ名前で引数違いの CalcDamage を追加する。",
+  file:"Scripts/Player.cs", learn:["メソッドのオーバーロード","シグネチャ"],
+  spec:{ goal:"CalcDamage(int atk, int bonus) を追加し、atk + bonus を返す。既存の CalcDamage は残す。",
+    io:"入力：atk, bonus / 出力：int（合計ダメージ）",
+    knowledge:"引数の型や数が違えば同じ名前のメソッドを複数定義できます（オーバーロード）。呼び出し側の引数で自動的に選ばれます。",
+    example:"public int CalcDamage(int atk, int bonus) {\n    return atk + bonus;\n}" },
+  checks:[
+    { re:/CalcDamage\s*\(\s*int\s+\w+\s*,\s*int\s+\w+\s*\)/, msg:"引数2つの CalcDamage がありません", hint:"public int CalcDamage(int atk, int bonus) { ... } を追加します。" },
+    { re:/return\s+\w+\s*\+\s*\w+/, msg:"合計を返していません", hint:"return atk + bonus; と書きます。" } ] },
+
+{ id:"ISSUE-0018", phase:2, lv:2, cat:"C#", feature:"プレイヤー", title:"文字列補間：自己紹介を作る",
+  summary:"$\"...\" で変数入りの文字列を組み立てる。",
+  file:"Scripts/Player.cs", learn:["文字列補間","$記法"],
+  spec:{ goal:"string 型の name 変数と、$\"勇者{name}です\" のように変数を埋め込んだ文字列を返す Introduce() を作る。",
+    io:"入力：なし / 出力：string（自己紹介文）",
+    knowledge:"文字列の前に $ を付けると {変数名} で値を埋め込めます。文字列連結より読みやすく現場の定番です。",
+    example:"public string name = \"アレックス\";\n\npublic string Introduce() {\n    return $\"僕の名前は{name}です\";\n}" },
+  checks:[
+    { re:/string\s+name\s*=/, msg:"string name 変数がありません", hint:"public string name = \"...\"; を追加します。" },
+    { re:/string\s+Introduce\s*\(\s*\)/, msg:"Introduce() メソッドがありません", hint:"public string Introduce() { ... } の形です。" },
+    { re:/\$"[^"]*\{name\}/, msg:"$\"...{name}...\" の補間がありません", hint:"return $\"僕の名前は{name}です\"; のように書きます。" } ] },
+
+{ id:"ISSUE-0019", phase:3, lv:3, cat:"C#", feature:"エネミー", title:"継承：敵キャラの基礎を作る",
+  summary:"Enemy 基底クラスと、それを継承した Slime を作る。完了するとゲームにスライムが出現！",
+  file:"Scripts/Enemy.cs", learn:["継承","virtual / override","基底クラス設計"], unlock:"enemy",
+  template:"// Enemy.cs\n// 敵キャラの基礎となるクラス群です。\n// 【やること】Enemy 基底クラスと Slime 派生クラスを定義しよう。\n\n",
+  spec:{ goal:"Enemy クラス（hp 変数と virtual な Attack メソッドを持つ）を作り、Slime クラスに継承させて Attack を override する。",
+    io:"Attack の出力：ダメージ値（int）",
+    knowledge:"継承を使うと「共通部分は親に、違う部分だけ子に」書けます。親側に virtual、子側に override を付けると振る舞いを差し替えられます。",
+    example:"public class Enemy {\n    public int hp = 30;\n\n    public virtual int Attack() {\n        return 5;\n    }\n}\n\npublic class Slime : Enemy {\n    public override int Attack() {\n        return 3;\n    }\n}" },
+  checks:[
+    { re:/class\s+Enemy\b/, msg:"Enemy クラスがありません", hint:"まず基底クラス Enemy を定義します。" },
+    { re:/class\s+Slime\s*:\s*Enemy/, msg:"Slime : Enemy の継承がありません", hint:"クラス名の後に \" : Enemy\" を付けると継承できます。" },
+    { re:/virtual/, msg:"virtual メソッドがありません", hint:"親側の Attack に virtual を付けます。" },
+    { re:/override/, msg:"override がありません", hint:"Slime 側の Attack に override を付けます。" } ] },
+
+{ id:"ISSUE-0020", phase:3, lv:3, cat:"C#", feature:"エネミー", title:"継承の応用：ゴブリンを追加する",
+  summary:"Enemy を継承した2体目の敵クラスを作る。",
+  file:"Scripts/Enemy.cs", learn:["継承の再利用","overrideの使い分け"],
+  spec:{ goal:"Goblin クラスを Enemy の継承で作り、Attack() を override してゴブリンらしい攻撃にする。",
+    io:"入力：なし / 出力：なし",
+    knowledge:"一度基底クラスを作れば、新しい敵は「差分だけ」書けばよい——これが継承の威力です。",
+    example:"public class Goblin : Enemy {\n    public override void Attack() {\n        // すばしっこい二回攻撃\n    }\n}" },
+  checks:[
+    { re:/class\s+Goblin\s*:\s*Enemy/, msg:"Goblin : Enemy の継承がありません", hint:"public class Goblin : Enemy { ... } と書きます。" },
+    { re:/class\s+Goblin[\s\S]*?override/, msg:"Goblin で override していません", hint:"public override void Attack() { ... } で上書きします。" } ] },
+
+{ id:"ISSUE-0021", phase:3, lv:3, cat:"C#", feature:"エネミー", title:"インターフェース：「ダメージを受けられるもの」を定義",
+  summary:"IDamageable インターフェースを新規ファイルに作り、Enemy に実装させる。",
+  file:"Scripts/IDamageable.cs", learn:["インターフェース","契約としての型"],
+  template:"// IDamageable.cs\n// 「ダメージを受けられるもの」の共通規格を定義します。\n// 【やること】1. ここに interface を定義する\n//            2. Enemy.cs を開いて Enemy に実装させる（: IDamageable）\n\n",
+  spec:{ goal:"void TakeDamage(int damage); を持つ IDamageable インターフェースを定義する。さらに Enemy.cs 側で Enemy クラスに実装（: IDamageable を付けて TakeDamage を実装）する。",
+    io:"TakeDamage の入力：damage / 出力：なし",
+    knowledge:"インターフェースは「このメソッドを必ず持つ」という約束事。中身は書かず、メソッドの形だけを宣言します。名前は I で始めるのが慣例です。",
+    example:"// IDamageable.cs 側：\npublic interface IDamageable {\n    void TakeDamage(int damage);\n}\n\n// Enemy.cs 側：\npublic class Enemy : IDamageable {\n    public int hp = 30;\n    public void TakeDamage(int damage) {\n        hp = hp - damage;\n    }\n    ...\n}" },
+  checks:[
+    { re:/interface\s+IDamageable/, msg:"IDamageable インターフェースがありません", hint:"public interface IDamageable { ... } と書きます。" },
+    { re:/void\s+TakeDamage\s*\(\s*int\s+\w+\s*\)\s*;/, msg:"TakeDamage(int …); の宣言がありません", hint:"インターフェース内は中身なしで void TakeDamage(int damage); とセミコロンで終えます。" },
+    { file:"Scripts/Enemy.cs", re:/Enemy\s*:\s*IDamageable/, msg:"Enemy が IDamageable を実装していません", hint:"Enemy.cs を開いて class Enemy : IDamageable に変更します。" },
+    { file:"Scripts/Enemy.cs", re:/void\s+TakeDamage\s*\(\s*int\s+\w+\s*\)\s*\{/, msg:"Enemy 側に TakeDamage の実装がありません", hint:"Enemy クラスの中に public void TakeDamage(int damage) { hp = hp - damage; } を追加します。" } ] },
+
+{ id:"ISSUE-0022", phase:3, lv:3, cat:"C#", feature:"システム", title:"プロパティ：所持金を安全に管理する",
+  summary:"マイナスのお金を防ぐ Wallet クラスを作る。",
+  file:"Scripts/Wallet.cs", learn:["プロパティ","get / set","カプセル化"],
+  template:"// Wallet.cs\n// 所持金を管理するクラスです。\n// 【やること】プロパティでマイナスを防ごう。\n\n",
+  spec:{ goal:"private int gold を持ち、Gold プロパティの set でマイナス値を 0 に丸める Wallet クラスを作る。",
+    io:"入力：Gold への代入 / 出力：Gold の取得",
+    knowledge:"変数を private にしてプロパティ経由で触らせると、不正な値を入口で弾けます（カプセル化）。",
+    example:"public class Wallet {\n    private int gold = 0;\n\n    public int Gold {\n        get { return gold; }\n        set {\n            if (value < 0) {\n                gold = 0;\n            } else {\n                gold = value;\n            }\n        }\n    }\n}" },
+  checks:[
+    { re:/class\s+Wallet/, msg:"Wallet クラスがありません", hint:"public class Wallet { ... } を定義します。" },
+    { re:/private\s+int\s+gold/, msg:"private int gold がありません", hint:"中身は private で隠します。" },
+    { re:/public\s+int\s+Gold/, msg:"Gold プロパティがありません", hint:"public int Gold { get {...} set {...} } の形です。" },
+    { re:/get\s*\{/, msg:"get がありません", hint:"get { return gold; } を書きます。" },
+    { re:/set\s*\{/, msg:"set がありません", hint:"set の中で value を検査してから代入します。" } ] },
+
+{ id:"ISSUE-0023", phase:3, lv:3, cat:"C#", feature:"システム", title:"static：スコアを一元管理する",
+  summary:"どこからでも触れる ScoreManager を作る。",
+  file:"Scripts/ScoreManager.cs", learn:["static変数","staticメソッド"],
+  template:"// ScoreManager.cs\n// ゲーム全体のスコアを一元管理します。\n\n",
+  spec:{ goal:"static int score と、値を加算する static void AddScore(int points) を持つ ScoreManager クラスを作る。",
+    io:"入力：points / 出力：なし（score を更新）",
+    knowledge:"static は「インスタンスを作らずにクラス名から直接使う」メンバー。ゲーム全体で一つだけの値に向いています。",
+    example:"public class ScoreManager {\n    public static int score = 0;\n\n    public static void AddScore(int points) {\n        score = score + points;\n    }\n}" },
+  checks:[
+    { re:/class\s+ScoreManager/, msg:"ScoreManager クラスがありません", hint:"public class ScoreManager { ... } を定義します。" },
+    { re:/static\s+int\s+score/, msg:"static int score がありません", hint:"public static int score = 0; を追加します。" },
+    { re:/static\s+void\s+AddScore\s*\(\s*int\s+\w+\s*\)/, msg:"static void AddScore(int …) がありません", hint:"public static void AddScore(int points) { ... } の形です。" } ] },
+
+{ id:"ISSUE-0024", phase:3, lv:4, cat:"C#", feature:"エネミー", title:"イベント：敵を倒した瞬間を伝える",
+  summary:"「敵を倒した」ことを他のシステムに知らせるイベントを作る。",
+  file:"Scripts/BattleEvents.cs", learn:["delegate","event","疎結合"],
+  template:"// BattleEvents.cs\n// 戦闘の出来事を全体に伝えるイベント置き場です。\n// 【やること】delegate / event / 発行メソッドを3点セットで定義しよう。\n\npublic class BattleEvents {\n\n}\n",
+  spec:{ goal:"EnemyDefeatedHandler という delegate、static event OnEnemyDefeated、それを発行する RaiseEnemyDefeated メソッドを作る。",
+    io:"発行時の情報：なし（通知のみ）",
+    knowledge:"event を使うと「倒した側」は誰が聞いているか知らなくてよくなります（疎結合）。?.Invoke() は「誰かが登録していたら呼ぶ」という安全な呼び方です。",
+    example:"public delegate void EnemyDefeatedHandler();\n\npublic static event EnemyDefeatedHandler OnEnemyDefeated;\n\npublic static void RaiseEnemyDefeated() {\n    OnEnemyDefeated?.Invoke();\n}" },
+  checks:[
+    { re:/delegate\s+void\s+EnemyDefeatedHandler/, msg:"EnemyDefeatedHandler の delegate 宣言がありません", hint:"public delegate void EnemyDefeatedHandler(); と書きます。" },
+    { re:/event\s+EnemyDefeatedHandler\s+OnEnemyDefeated/, msg:"event OnEnemyDefeated がありません", hint:"public static event EnemyDefeatedHandler OnEnemyDefeated; と書きます。" },
+    { re:/OnEnemyDefeated\s*\?\.\s*Invoke\s*\(|OnEnemyDefeated\s*\(\s*\)/, msg:"イベントを発行する処理がありません", hint:"OnEnemyDefeated?.Invoke(); を発行メソッドの中に書きます。" } ] },
+
+{ id:"ISSUE-0025", phase:3, lv:4, cat:"C#", feature:"アイテム", title:"Dictionary：ドロップテーブルを作る",
+  summary:"敵名→ドロップ率の対応表を Dictionary で持つ。",
+  file:"Scripts/DropTable.cs", learn:["Dictionary","キーと値","usingの必要性"],
+  template:"// DropTable.cs\n// 敵ごとのアイテムドロップ率を管理します。\n\n",
+  spec:{ goal:"using System.Collections.Generic; を宣言し、Dictionary<string, int> dropTable を持つ DropTable クラスを作り、Add で「スライム→ドロップ率60」を登録する。",
+    io:"入力：なし / 出力：なし（対応表を保持）",
+    knowledge:"Dictionaryは「キーで値を引く辞書」。配列の番号ではなく名前で引けるのが強みです。",
+    example:"using System.Collections.Generic;\n\npublic class DropTable {\n    public Dictionary<string, int> dropTable = new Dictionary<string, int>();\n\n    public void Setup() {\n        dropTable.Add(\"スライム\", 60);\n        dropTable.Add(\"ゴブリン\", 40);\n    }\n}" },
+  checks:[
+    { re:/using\s+System\.Collections\.Generic\s*;/, msg:"using System.Collections.Generic; がありません", hint:"Dictionary を使うにはファイル先頭の using 宣言が必要です。" },
+    { re:/Dictionary<string,\s*int>\s+dropTable/, msg:"Dictionary<string, int> dropTable がありません", hint:"public Dictionary<string, int> dropTable = new Dictionary<string, int>(); と書きます。" },
+    { re:/dropTable\.Add\s*\(/, msg:"Add での登録がありません", hint:"dropTable.Add(\"スライム\", 60); のように登録します。" } ] },
+
+{ id:"ISSUE-0026", phase:3, lv:4, cat:"C#", feature:"システム", title:"例外処理：壊れたデータに備える",
+  summary:"try / catch で設定読み込みの失敗に備える。",
+  file:"Scripts/ConfigLoader.cs", learn:["try / catch","例外","フォールバック"],
+  template:"// ConfigLoader.cs\n// 設定データの読み込みを担当します。\n\n",
+  spec:{ goal:"LoadConfig(string json) メソッドを持つ ConfigLoader クラスを作る。try でパースを試み、catch で失敗時はデフォルト値を返す。",
+    io:"入力：json（設定文字列）/ 出力：int（設定値）",
+    knowledge:"外部データは壊れている前提で書く。try の中で失敗すると catch に飛び、ゲームを落とさずに復旧できます。",
+    example:"public class ConfigLoader {\n    public int LoadConfig(string json) {\n        try {\n            return int.Parse(json);\n        } catch (System.Exception e) {\n            return 100;\n        }\n    }\n}" },
+  checks:[
+    { re:/class\s+ConfigLoader/, msg:"ConfigLoader クラスがありません", hint:"public class ConfigLoader { ... } を定義します。" },
+    { re:/try\s*\{/, msg:"try ブロックがありません", hint:"失敗するかもしれない処理を try { ... } で囲います。" },
+    { re:/catch\s*\(/, msg:"catch がありません", hint:"catch (System.Exception e) { ... } で失敗時の処理を書きます。" } ] },
+
+{ id:"ISSUE-0027", phase:4, lv:3, cat:"Unity", feature:"プレイヤー", title:"MonoBehaviour：プレイヤーを動かす",
+  summary:"Unityの作法に従い、毎フレーム入力を読んで移動する PlayerController を作る。",
+  file:"Scripts/PlayerController.cs", learn:["MonoBehaviour","Updateループ","Input.GetAxis"],
+  template:"// PlayerController.cs\n// Unity上でプレイヤーを動かすコンポーネントです。\n// 【やること】MonoBehaviour を継承し、Update で入力を読もう。\n\nusing UnityEngine;\n\n",
+  spec:{ goal:"MonoBehaviour を継承した PlayerController を作り、Update() の中で Input.GetAxis(\"Horizontal\") を読んで transform.Translate で移動させる。",
+    io:"入力：方向キー / 出力：座標の更新",
+    knowledge:"Unityではゲーム中毎フレーム Update() が呼ばれます。Input.GetAxis は矢印キーの傾きを -1〜1 で返します。Time.deltaTime を掛けると速度がフレームレートに依存しなくなります。",
+    example:"public class PlayerController : MonoBehaviour {\n    public float speed = 3.0f;\n\n    void Update() {\n        float x = Input.GetAxis(\"Horizontal\");\n        float y = Input.GetAxis(\"Vertical\");\n        transform.Translate(x * speed * Time.deltaTime, y * speed * Time.deltaTime, 0);\n    }\n}" },
+  checks:[
+    { re:/using\s+UnityEngine\s*;/, msg:"using UnityEngine; がありません", hint:"Unityの機能を使うファイルの先頭に必要です。" },
+    { re:/class\s+PlayerController\s*:\s*MonoBehaviour/, msg:"PlayerController : MonoBehaviour がありません", hint:"MonoBehaviour を継承すると Unity の部品になれます。" },
+    { re:/void\s+Update\s*\(\s*\)/, msg:"Update() メソッドがありません", hint:"void Update() { ... } を定義します。" },
+    { re:/Input\.GetAxis(Raw)?\s*\(\s*"Horizontal"\s*\)/, msg:'Input.GetAxis("Horizontal") がありません', hint:"横方向の入力を読み取ります。" },
+    { re:/transform\.(Translate|position)/, msg:"transform を使った移動処理がありません", hint:"transform.Translate(...) で移動できます。" } ] },
+
+{ id:"ISSUE-0028", phase:4, lv:3, cat:"Unity", feature:"プレイヤー", title:"StartとAwake：初期化の作法",
+  summary:"Unityの初期化メソッドを正しい順序で使う。",
+  file:"Scripts/PlayerController.cs", learn:["Awake / Start","実行順序","Debug.Log"],
+  spec:{ goal:"PlayerController に void Awake() と void Start() を追加し、それぞれ Debug.Log でログを出す。",
+    io:"入力：なし / 出力：ログ",
+    knowledge:"Awake は生成直後、Start は最初のフレームの前に1回だけ呼ばれます。自分の初期化は Awake、他オブジェクト参照は Start が定石。",
+    example:"void Awake() {\n    Debug.Log(\"Awake: 自分の初期化\");\n}\n\nvoid Start() {\n    Debug.Log(\"Start: 他オブジェクトとの接続\");\n}" },
+  checks:[
+    { re:/void\s+Awake\s*\(\s*\)/, msg:"Awake() がありません", hint:"void Awake() { ... } を追加します。" },
+    { re:/void\s+Start\s*\(\s*\)/, msg:"Start() がありません", hint:"void Start() { ... } を追加します。" },
+    { re:/Debug\.Log\s*\(/, msg:"Debug.Log がありません", hint:"Debug.Log(\"...\"); でコンソールにログを出せます。" } ] },
+
+{ id:"ISSUE-0029", phase:4, lv:3, cat:"Unity", feature:"プレイヤー", title:"物理：ジャンプを実装する",
+  summary:"Rigidbody2D に力を加えてジャンプさせる。",
+  file:"Scripts/PlayerController.cs", learn:["Rigidbody2D","AddForce","GetKeyDown"],
+  spec:{ goal:"Rigidbody2D 型の変数を持ち、Space キーが押された瞬間に AddForce で上向きの力を加える。",
+    io:"入力：Spaceキー / 出力：なし（物理挙動）",
+    knowledge:"GetKey は押している間ずっと、GetKeyDown は押した瞬間の1フレームだけ true。ジャンプには GetKeyDown を使います。",
+    example:"public Rigidbody2D rb;\n\nvoid JumpCheck() {\n    if (Input.GetKeyDown(KeyCode.Space)) {\n        rb.AddForce(Vector2.up * 300);\n    }\n}" },
+  checks:[
+    { re:/Rigidbody2D\s+\w+/, msg:"Rigidbody2D 型の変数がありません", hint:"public Rigidbody2D rb; を追加します。" },
+    { re:/Input\.GetKeyDown\s*\(\s*KeyCode\.Space\s*\)/, msg:"GetKeyDown(KeyCode.Space) がありません", hint:"if (Input.GetKeyDown(KeyCode.Space)) { ... } で判定します。" },
+    { re:/AddForce\s*\(/, msg:"AddForce がありません", hint:"rb.AddForce(Vector2.up * 300); で上向きの力を加えます。" } ] },
+
+{ id:"ISSUE-0030", phase:4, lv:3, cat:"Unity", feature:"プレイヤー", title:"当たり判定：敵に触れたらダメージ",
+  summary:"敵との接触を検知してダメージを受ける処理を PlayerController に足す。",
+  file:"Scripts/PlayerController.cs", learn:["OnCollisionEnter2D","タグ判定","システム連携"],
+  spec:{ goal:"OnCollisionEnter2D(Collision2D collision) を追加し、相手のタグが \"Enemy\" なら stats.TakeDamage(10); を呼ぶ（PlayerStats stats 変数も追加）。",
+    io:"入力：衝突情報 / 出力：HPの減少",
+    knowledge:"Unityは物理接触の瞬間に OnCollisionEnter2D を自動で呼びます。CompareTag で相手の種類を判別できます。",
+    example:"public PlayerStats stats = new PlayerStats();\n\nvoid OnCollisionEnter2D(Collision2D collision) {\n    if (collision.gameObject.CompareTag(\"Enemy\")) {\n        stats.TakeDamage(10);\n    }\n}" },
+  checks:[
+    { re:/PlayerStats\s+stats/, msg:"PlayerStats stats 変数がありません", hint:"public PlayerStats stats = new PlayerStats(); をクラスに追加します。" },
+    { re:/void\s+OnCollisionEnter2D\s*\(\s*Collision2D\s+\w+\s*\)/, msg:"OnCollisionEnter2D(Collision2D …) がありません", hint:"メソッド名は一字でも違うとUnityに呼んでもらえません。" },
+    { re:/CompareTag\s*\(\s*"Enemy"\s*\)/, msg:'CompareTag("Enemy") の判定がありません', hint:'if (collision.gameObject.CompareTag("Enemy")) { ... } と書きます。' },
+    { re:/TakeDamage\s*\(\s*10\s*\)/, msg:"TakeDamage(10) の呼び出しがありません", hint:"判定の中で stats.TakeDamage(10); を呼びます。" } ] },
+
+{ id:"ISSUE-0031", phase:4, lv:3, cat:"Unity", feature:"アイテム", title:"トリガー：アイテムに触れたら拾う",
+  summary:"すり抜ける当たり判定（トリガー）でアイテム取得を検知する。",
+  file:"Scripts/PlayerController.cs", learn:["OnTriggerEnter2D","isTrigger","タグ判定"],
+  spec:{ goal:"OnTriggerEnter2D(Collider2D other) を追加し、相手のタグが \"Item\" なら拾う処理を呼ぶ。",
+    io:"入力：other（接触したコライダー）/ 出力：なし",
+    knowledge:"Collision は「ぶつかる」、Trigger は「通り抜けを検知する」。コインや回復アイテムは Trigger が定番です。",
+    example:"void OnTriggerEnter2D(Collider2D other) {\n    if (other.CompareTag(\"Item\")) {\n        // 拾う処理\n    }\n}" },
+  checks:[
+    { re:/void\s+OnTriggerEnter2D\s*\(\s*Collider2D\s+\w+\s*\)/, msg:"OnTriggerEnter2D(Collider2D …) がありません", hint:"void OnTriggerEnter2D(Collider2D other) { ... } の形です。" },
+    { re:/CompareTag\s*\(\s*"Item"\s*\)/, msg:"CompareTag(\"Item\") がありません", hint:"if (other.CompareTag(\"Item\")) { ... } で判定します。" } ] },
+
+{ id:"ISSUE-0032", phase:4, lv:3, cat:"Unity", feature:"カメラ", title:"カメラ追従：主人公を追いかける",
+  summary:"LateUpdate でプレイヤーを滑らかに追うカメラを作る。",
+  file:"Scripts/CameraFollow.cs", learn:["LateUpdate","Lerp","カメラ制御"],
+  template:"// CameraFollow.cs\n// プレイヤーを追いかけるカメラです。\n\n",
+  spec:{ goal:"CameraFollow : MonoBehaviour を作り、LateUpdate で Vector3.Lerp を使って target に滑らかに近づける。",
+    io:"入力：target（追従対象）/ 出力：なし（自身の位置更新）",
+    knowledge:"カメラは全キャラの移動が終わった後に動かすとガタつきません。そのため Update ではなく LateUpdate を使います。",
+    example:"public class CameraFollow : MonoBehaviour {\n    public Transform target;\n\n    void LateUpdate() {\n        transform.position = Vector3.Lerp(transform.position, target.position, 0.1f);\n    }\n}" },
+  checks:[
+    { re:/class\s+CameraFollow\s*:\s*MonoBehaviour/, msg:"CameraFollow : MonoBehaviour がありません", hint:"public class CameraFollow : MonoBehaviour { ... } と書きます。" },
+    { re:/void\s+LateUpdate\s*\(\s*\)/, msg:"LateUpdate() がありません", hint:"void LateUpdate() { ... } を使います。" },
+    { re:/Vector3\.Lerp\s*\(/, msg:"Vector3.Lerp がありません", hint:"Lerp(現在地, 目標, 0.1f) で滑らかに近づけます。" } ] },
+
+{ id:"ISSUE-0033", phase:4, lv:3, cat:"Unity", feature:"プレイヤー", title:"アニメーション：歩きと待機を切り替える",
+  summary:"Animator のパラメータでアニメーションを制御する。",
+  file:"Scripts/PlayerController.cs", learn:["Animator","SetBool","パラメータ駆動"],
+  spec:{ goal:"Animator 型の変数を持ち、移動中かどうかを SetBool(\"isWalking\", …) でアニメーターに伝える。",
+    io:"入力：移動量 / 出力：アニメーション状態",
+    knowledge:"コードからアニメを直接再生するのではなく、「状態（パラメータ）」を渡して Animator 側に遷移を任せるのがUnity流です。",
+    example:"public Animator animator;\n\nvoid UpdateAnimation(float moveX) {\n    animator.SetBool(\"isWalking\", moveX != 0);\n}" },
+  checks:[
+    { re:/Animator\s+\w+/, msg:"Animator 型の変数がありません", hint:"public Animator animator; を追加します。" },
+    { re:/SetBool\s*\(\s*"isWalking"/, msg:"SetBool(\"isWalking\", …) がありません", hint:"animator.SetBool(\"isWalking\", moveX != 0); のように書きます。" } ] },
+
+{ id:"ISSUE-0034", phase:4, lv:4, cat:"Unity", feature:"エネミー", title:"プレハブ生成：敵スポナーを作る",
+  summary:"Instantiate で敵を動的に生成する。",
+  file:"Scripts/EnemySpawner.cs", learn:["Instantiate","プレハブ","生成位置"],
+  template:"// EnemySpawner.cs\n// 敵を定期的に生成するスポナーです。\n\n",
+  spec:{ goal:"GameObject enemyPrefab を持つ EnemySpawner : MonoBehaviour を作り、Spawn() で Instantiate する。",
+    io:"入力：なし / 出力：生成された敵",
+    knowledge:"プレハブは「金型」。Instantiate(金型, 位置, 向き) で何体でも複製できます。ウェーブ制の敵出現はだいたいこれです。",
+    example:"public class EnemySpawner : MonoBehaviour {\n    public GameObject enemyPrefab;\n\n    public void Spawn() {\n        Instantiate(enemyPrefab, transform.position, Quaternion.identity);\n    }\n}" },
+  checks:[
+    { re:/class\s+EnemySpawner\s*:\s*MonoBehaviour/, msg:"EnemySpawner : MonoBehaviour がありません", hint:"public class EnemySpawner : MonoBehaviour { ... } と書きます。" },
+    { re:/GameObject\s+enemyPrefab/, msg:"GameObject enemyPrefab がありません", hint:"public GameObject enemyPrefab; を追加します。" },
+    { re:/Instantiate\s*\(/, msg:"Instantiate がありません", hint:"Instantiate(enemyPrefab, transform.position, Quaternion.identity); で生成します。" } ] },
+
+{ id:"ISSUE-0035", phase:5, lv:4, cat:"システム", feature:"戦闘", title:"戦闘システム：ダメージ計算式を実装",
+  summary:"攻撃力と防御力からダメージを決める共通関数を作る。完了するとSpaceキーで攻撃できる！",
+  file:"Scripts/BattleSystem.cs", learn:["staticメソッド","下限ガード","設計の共通化"], unlock:"battle",
+  template:"// BattleSystem.cs\n// 戦闘のダメージ計算を一手に引き受けるクラスです。\n// 【やること】ResolveAttack を実装しよう。\n\npublic class BattleSystem {\n\n}\n",
+  spec:{ goal:"static な int ResolveAttack(int atk, int def) を作る。damage = atk - def とし、1未満にならないよう if で下限を1にしてから return。",
+    io:"入力：atk（攻撃力）, def（防御力）/ 出力：ダメージ1以上",
+    knowledge:"static メソッドはインスタンスを作らず BattleSystem.ResolveAttack(...) の形で呼べます。「ダメージ0」を防ぐ下限ガードはゲーム設計の定番です。",
+    example:"public static int ResolveAttack(int atk, int def) {\n    int damage = atk - def;\n    if (damage < 1) {\n        damage = 1;\n    }\n    return damage;\n}" },
+  checks:[
+    { re:/static\s+int\s+ResolveAttack\s*\(\s*int\s+\w+\s*,\s*int\s+\w+\s*\)/, msg:"static int ResolveAttack(int, int) がありません", hint:"public static int ResolveAttack(int atk, int def) { ... } の形です。" },
+    { re:/int\s+damage\s*=/, msg:"damage 変数の計算がありません", hint:"int damage = atk - def; と書きます。" },
+    { re:/if\s*\(\s*damage\s*<\s*1\s*\)/, msg:"下限ガード if (damage < 1) がありません", hint:"防御力が高すぎても0ダメージにならないようにします。" },
+    { re:/return\s+damage\s*;/, msg:"return damage; がありません", hint:"最後に計算結果を返します。" } ] },
+
+{ id:"ISSUE-0036", phase:5, lv:4, cat:"システム", feature:"戦闘", title:"クリティカル：一定確率で2倍ダメージ",
+  summary:"乱数を使ってクリティカルヒットを実装する。",
+  file:"Scripts/BattleSystem.cs", learn:["Random.Range","確率の実装"],
+  spec:{ goal:"static int ResolveCritical(int damage2) を追加。Random.Range(0, 100) が 20 未満なら damage2 * 2 を、それ以外はそのまま返す。",
+    io:"入力：damage2（元ダメージ）/ 出力：int（最終ダメージ）",
+    knowledge:"Random.Range(0, 100) は 0〜99 の整数を返します。「20未満なら発動」と書けば発動率20%になります。",
+    example:"public static int ResolveCritical(int damage2) {\n    if (Random.Range(0, 100) < 20) {\n        return damage2 * 2;\n    }\n    return damage2;\n}" },
+  checks:[
+    { re:/static\s+int\s+ResolveCritical\s*\(\s*int\s+\w+\s*\)/, msg:"ResolveCritical(int …) がありません", hint:"public static int ResolveCritical(int damage2) { ... } の形です。" },
+    { re:/Random\.Range\s*\(\s*0\s*,\s*100\s*\)/, msg:"Random.Range(0, 100) がありません", hint:"if (Random.Range(0, 100) < 20) { ... } で確率判定します。" },
+    { re:/\*\s*2/, msg:"2倍にする計算がありません", hint:"return damage2 * 2; でクリティカルダメージを返します。" } ] },
+
+{ id:"ISSUE-0037", phase:5, lv:4, cat:"システム", feature:"戦闘", title:"クールダウン：連打を防ぐ",
+  summary:"Time.deltaTime で攻撃間隔を制御する。",
+  file:"Scripts/BattleSystem.cs", learn:["Time.deltaTime","クールダウン管理"],
+  spec:{ goal:"float cooldown 変数を持ち、TickCooldown() で Time.deltaTime を引き、CanAttack() で cooldown <= 0 を返す。",
+    io:"入力：毎フレームの経過時間 / 出力：bool（攻撃可否）",
+    knowledge:"Time.deltaTime は「前のフレームからの経過秒」。毎フレーム引き算すればフレームレートに左右されないタイマーになります。",
+    example:"public static float cooldown = 0f;\n\npublic static void TickCooldown() {\n    cooldown = cooldown - Time.deltaTime;\n}\n\npublic static bool CanAttack() {\n    return cooldown <= 0;\n}" },
+  checks:[
+    { re:/float\s+cooldown/, msg:"float cooldown 変数がありません", hint:"public static float cooldown = 0f; を追加します。" },
+    { re:/Time\.deltaTime/, msg:"Time.deltaTime を使っていません", hint:"cooldown = cooldown - Time.deltaTime; で減らします。" },
+    { re:/bool\s+CanAttack\s*\(\s*\)/, msg:"CanAttack() がありません", hint:"public static bool CanAttack() { return cooldown <= 0; } と書きます。" } ] },
+
+{ id:"ISSUE-0038", phase:5, lv:3, cat:"システム", feature:"アイテム", title:"アイテム：拾えるポーションを実装",
+  summary:"Item クラスと取得処理を作る。完了するとマップにポーションが落ちる！",
+  file:"Scripts/ItemSystem.cs", learn:["クラス設計","フィールド","Listの実践"], unlock:"items",
+  template:"// ItemSystem.cs\n// アイテムの定義と取得処理をまとめます。\n// 【やること】Item クラスと ItemSystem.PickUp を実装しよう。\n\nusing System.Collections.Generic;\n\n",
+  spec:{ goal:"name（string）と healAmount（int）を持つ Item クラスを作る。ItemSystem クラスに List<Item> items と PickUp(Item item) メソッドを作り、拾ったアイテムをリストに加える。",
+    io:"入力：item / 出力：なし（items に追加）",
+    knowledge:"データ（Item）と処理（ItemSystem）を別クラスに分けるのは設計の基本です。一つのファイルに複数クラスを書いても構いません。",
+    example:"public class Item {\n    public string name;\n    public int healAmount;\n}\n\npublic class ItemSystem {\n    public List<Item> items = new List<Item>();\n\n    public void PickUp(Item item) {\n        items.Add(item);\n    }\n}" },
+  checks:[
+    { re:/class\s+Item\b/, msg:"Item クラスがありません", hint:"アイテムのデータを持つクラスを定義します。" },
+    { re:/public\s+string\s+name\s*;/, msg:"string name フィールドがありません", hint:"Item の中に public string name; を書きます。" },
+    { re:/public\s+int\s+healAmount\s*;/, msg:"int healAmount フィールドがありません", hint:"回復量を持たせます。" },
+    { re:/List<Item>\s+items/, msg:"List<Item> items がありません", hint:"ItemSystem に public List<Item> items = new List<Item>(); を書きます。" },
+    { re:/void\s+PickUp\s*\(\s*Item\s+\w+\s*\)/, msg:"PickUp(Item …) メソッドがありません", hint:"public void PickUp(Item item) { items.Add(item); } の形です。" } ] },
+
+{ id:"ISSUE-0039", phase:5, lv:3, cat:"システム", feature:"アイテム", title:"ドロップ抽選：倒した敵がアイテムを落とす",
+  summary:"確率抽選でドロップするか決める。",
+  file:"Scripts/ItemSystem.cs", learn:["確率抽選","nullの返却"],
+  spec:{ goal:"RollDrop(int rate) メソッドを追加。Random.Range(0, 100) が rate 未満なら新しい Item を返し、外れなら null を返す。",
+    io:"入力：rate（ドロップ率%）/ 出力：Item または null",
+    knowledge:"「何も落とさない」を表現するのが null。受け取り側は null チェックを忘れずに。",
+    example:"public Item RollDrop(int rate) {\n    if (Random.Range(0, 100) < rate) {\n        Item drop = new Item();\n        drop.name = \"ポーション\";\n        drop.healAmount = 30;\n        return drop;\n    }\n    return null;\n}" },
+  checks:[
+    { re:/Item\s+RollDrop\s*\(\s*int\s+\w+\s*\)/, msg:"RollDrop(int …) がありません", hint:"public Item RollDrop(int rate) { ... } の形です。" },
+    { re:/Random\.Range\s*\(/, msg:"Random.Range による抽選がありません", hint:"if (Random.Range(0, 100) < rate) { ... } で抽選します。" },
+    { re:/return\s+null\s*;/, msg:"外れ時に null を返していません", hint:"抽選に外れたら return null; します。" } ] },
+
+{ id:"ISSUE-0040", phase:5, lv:3, cat:"システム", feature:"インベントリ", title:"インベントリUI：持ち物を一覧・使用する",
+  summary:"所持アイテムを一覧化して使う処理を作る。完了すると I キーでインベントリが開く！",
+  file:"Scripts/InventoryUI.cs", learn:["foreach","UIとロジックの分離"], unlock:"inventory",
+  template:"// InventoryUI.cs\n// 所持アイテムを画面に並べて使うためのクラスです。\n// 【やること】ShowAll と UseItem を実装しよう。\n\nusing System.Collections.Generic;\n\npublic class InventoryUI {\n    public List<Item> items = new List<Item>();\n\n}\n",
+  spec:{ goal:"foreach で全アイテム名を表示する ShowAll メソッドと、使ったアイテムをリストから取り除く UseItem(Item item) を作る。",
+    io:"UseItem の入力：item / 出力：なし（items から削除）",
+    knowledge:"foreach は「リストの全要素を順に取り出す」構文。UIの表示内容とデータ操作を別メソッドに分けると見通しが良くなります。",
+    example:"public void ShowAll() {\n    foreach (Item item in items) {\n        Debug.Log(item.name);\n    }\n}\n\npublic void UseItem(Item item) {\n    items.Remove(item);\n}" },
+  checks:[
+    { re:/foreach\s*\(/, msg:"foreach 文がありません", hint:"foreach (Item item in items) { ... } で全件を回せます。" },
+    { re:/void\s+UseItem\s*\(\s*Item\s+\w+\s*\)/, msg:"UseItem(Item …) メソッドがありません", hint:"public void UseItem(Item item) { ... } の形です。" },
+    { re:/items\.Remove\s*\(/, msg:"items.Remove(…) がありません", hint:"使ったアイテムはリストから取り除きます。" } ] },
+
+{ id:"ISSUE-0041", phase:5, lv:3, cat:"システム", feature:"インベントリ", title:"並べ替え：持ち物を整理する",
+  summary:"Sort でアイテムを五十音順に並べる。",
+  file:"Scripts/InventoryUI.cs", learn:["List.Sort","整列"],
+  spec:{ goal:"SortItems() メソッドを追加し、items.Sort() で並べ替える。",
+    io:"入力：なし / 出力：なし（items を並べ替え）",
+    knowledge:"List.Sort() は要素を昇順に並べ替えます。文字列なら辞書順。UIに見せる前の一手間で体験が良くなります。",
+    example:"public void SortItems() {\n    items.Sort();\n}" },
+  checks:[
+    { re:/void\s+SortItems\s*\(\s*\)/, msg:"SortItems() がありません", hint:"public void SortItems() { ... } の形です。" },
+    { re:/items\.Sort\s*\(\s*\)/, msg:"items.Sort() がありません", hint:"items.Sort(); の1行で並び替えできます。" } ] },
+
+{ id:"ISSUE-0042", phase:5, lv:3, cat:"システム", feature:"NPC会話", title:"会話システム：NPCがしゃべる",
+  summary:"セリフを順に送る DialogueSystem を作る。完了すると町の案内人と話せる！",
+  file:"Scripts/DialogueSystem.cs", learn:["配列とインデックス管理","状態を持つクラス"], unlock:"npc",
+  template:"// DialogueSystem.cs\n// NPCの会話を進行させるクラスです。\n// 【やること】セリフ配列と NextLine メソッドを実装しよう。\n\npublic class DialogueSystem {\n\n}\n",
+  spec:{ goal:"string[] lines（セリフの配列）と int index を持ち、呼ぶたびに次のセリフを返す string NextLine() を作る。最後まで進んだら index を0に戻す。",
+    io:"入力：なし / 出力：セリフ（string）",
+    knowledge:"「今何行目か」をクラスの変数として覚えておくのがポイント。呼び出すたびに状態が進むクラスはゲーム開発で頻出します。",
+    example:"public string[] lines = { \"ようこそ！\", \"ここははじまりの町。\" };\npublic int index = 0;\n\npublic string NextLine() {\n    string line = lines[index];\n    index = index + 1;\n    if (index >= lines.Length) {\n        index = 0;\n    }\n    return line;\n}" },
+  checks:[
+    { re:/string\[\]\s+lines/, msg:"string[] lines がありません", hint:"セリフを配列で持たせます。" },
+    { re:/int\s+index/, msg:"int index がありません", hint:"何行目まで話したかを覚える変数です。" },
+    { re:/string\s+NextLine\s*\(\s*\)/, msg:"string NextLine() がありません", hint:"セリフを返すので戻り値は string です。" },
+    { re:/index\s*(=\s*index\s*\+\s*1|\+\+|\+=\s*1)/, msg:"index を進める処理がありません", hint:"index = index + 1; または index++; で進めます。" } ] },
+
+{ id:"ISSUE-0043", phase:5, lv:4, cat:"システム", feature:"NPC", title:"会話の選択肢：分岐する会話",
+  summary:"選択肢付きの会話を実装する。",
+  file:"Scripts/DialogueSystem.cs", learn:["配列の活用","添字検査"],
+  spec:{ goal:"string[] choices と、番号で選択肢を返す Choose(int index2) を追加。範囲外の番号なら \"…\" を返す。",
+    io:"入力：index2（選択番号）/ 出力：string（選ばれた選択肢）",
+    knowledge:"配列の範囲外アクセスはクラッシュの二大原因の一つ。添字は使う前に必ず範囲を確認します。",
+    example:"public string[] choices = { \"はい\", \"いいえ\" };\n\npublic string Choose(int index2) {\n    if (index2 < 0 || index2 >= choices.Length) {\n        return \"…\";\n    }\n    return choices[index2];\n}" },
+  checks:[
+    { re:/string\[\]\s+choices/, msg:"string[] choices がありません", hint:"public string[] choices = { \"はい\", \"いいえ\" }; を追加します。" },
+    { re:/string\s+Choose\s*\(\s*int\s+\w+\s*\)/, msg:"Choose(int …) がありません", hint:"public string Choose(int index2) { ... } の形です。" },
+    { re:/choices\.Length/, msg:"範囲チェックがありません", hint:"index2 >= choices.Length を判定に含めます。" } ] },
+
+{ id:"ISSUE-0044", phase:5, lv:4, cat:"システム", feature:"クエスト", title:"クエスト管理：討伐数を数える",
+  summary:"討伐カウントと達成判定を持つ QuestSystem を作る。",
+  file:"Scripts/QuestSystem.cs", learn:["状態管理","bool判定メソッド"],
+  template:"// QuestSystem.cs\n// クエストの進行を管理します。\n\n",
+  spec:{ goal:"int killCount と int target を持つ QuestSystem クラスを作り、AddKill() でカウントを増やし、IsComplete() で killCount >= target を返す。",
+    io:"入力：討伐イベント / 出力：bool（達成したか）",
+    knowledge:"「進行状態を数値で持ち、判定はメソッドに切り出す」のがクエスト系の基本形。UIもセーブもこの値を参照するだけになります。",
+    example:"public class QuestSystem {\n    public int killCount = 0;\n    public int target = 3;\n\n    public void AddKill() {\n        killCount = killCount + 1;\n    }\n\n    public bool IsComplete() {\n        return killCount >= target;\n    }\n}" },
+  checks:[
+    { re:/class\s+QuestSystem/, msg:"QuestSystem クラスがありません", hint:"public class QuestSystem { ... } を定義します。" },
+    { re:/int\s+killCount/, msg:"int killCount がありません", hint:"public int killCount = 0; を追加します。" },
+    { re:/void\s+AddKill\s*\(\s*\)/, msg:"AddKill() がありません", hint:"public void AddKill() { killCount = killCount + 1; } と書きます。" },
+    { re:/bool\s+IsComplete\s*\(\s*\)/, msg:"IsComplete() がありません", hint:"return killCount >= target; を返すメソッドです。" } ] },
+
+{ id:"ISSUE-0045", phase:5, lv:4, cat:"システム", feature:"成長", title:"レベルアップ：経験値システムを完成させる",
+  summary:"経験値を加算し、しきい値を超えたらレベルアップさせる。",
+  file:"Scripts/LevelSystem.cs", learn:["whileによる連続レベルアップ","状態更新"],
+  template:"// LevelSystem.cs\n// 経験値とレベルを管理します。\n\n",
+  spec:{ goal:"int level = 1 と int exp = 0 を持つ LevelSystem クラスを作る。AddExp(int amount) で exp を加算し、exp が level * 100 以上の間は引いて level を上げる。",
+    io:"入力：amount（獲得経験値）/ 出力：なし（level / exp 更新）",
+    knowledge:"大量の経験値を一度に得ると一気に複数レベル上がることがあるので、if ではなく while で回すのがポイントです。",
+    example:"public class LevelSystem {\n    public int level = 1;\n    public int exp = 0;\n\n    public void AddExp(int amount) {\n        exp = exp + amount;\n        while (exp >= level * 100) {\n            exp = exp - level * 100;\n            level = level + 1;\n        }\n    }\n}" },
+  checks:[
+    { re:/class\s+LevelSystem/, msg:"LevelSystem クラスがありません", hint:"public class LevelSystem { ... } を定義します。" },
+    { re:/void\s+AddExp\s*\(\s*int\s+\w+\s*\)/, msg:"AddExp(int …) がありません", hint:"public void AddExp(int amount) { ... } の形です。" },
+    { re:/while\s*\(\s*exp\s*>=/, msg:"while (exp >= …) のループがありません", hint:"while (exp >= level * 100) { ... } で連続レベルアップに対応します。" },
+    { re:/level\s*=\s*level\s*\+\s*1/, msg:"レベルを上げる処理がありません", hint:"level = level + 1; でレベルを上げます。" } ] },
+
+{ id:"ISSUE-0046", phase:5, lv:4, cat:"システム", feature:"セーブ", title:"セーブ機能：冒険を記録する",
+  summary:"ゲームの状態を保存・復元する SaveSystem を作る。完了するとプレビューにセーブボタンが付く！",
+  file:"Scripts/SaveSystem.cs", learn:["シリアライズ","JsonUtility","永続化"], unlock:"save",
+  template:"// SaveSystem.cs\n// ゲームの進行状況を保存・復元するクラスです。\n// 【やること】SaveData クラスと Save / Load メソッドを実装しよう。\n\nusing UnityEngine;\n\n",
+  spec:{ goal:"hp と defeatedCount を持つ SaveData クラスを作る。SaveSystem クラスに、JsonUtility.ToJson で文字列化して PlayerPrefs に保存する Save(SaveData data) と、読み戻す Load() を作る。",
+    io:"Save の入力：SaveData / Load の出力：SaveData",
+    knowledge:"オブジェクト→文字列化（シリアライズ）して保存するのがセーブの基本。Unityでは JsonUtility と PlayerPrefs の組み合わせが手軽です。",
+    example:"public class SaveData {\n    public int hp;\n    public int defeatedCount;\n}\n\npublic class SaveSystem {\n    public void Save(SaveData data) {\n        string json = JsonUtility.ToJson(data);\n        PlayerPrefs.SetString(\"save\", json);\n    }\n\n    public SaveData Load() {\n        string json = PlayerPrefs.GetString(\"save\");\n        return JsonUtility.FromJson<SaveData>(json);\n    }\n}" },
+  checks:[
+    { re:/class\s+SaveData/, msg:"SaveData クラスがありません", hint:"保存したい値をまとめる小さなクラスを作ります。" },
+    { re:/void\s+Save\s*\(\s*SaveData\s+\w+\s*\)/, msg:"Save(SaveData …) がありません", hint:"public void Save(SaveData data) { ... } の形です。" },
+    { re:/JsonUtility\.ToJson\s*\(/, msg:"JsonUtility.ToJson がありません", hint:"オブジェクトをJSON文字列に変換します。" },
+    { re:/PlayerPrefs\.SetString\s*\(/, msg:"PlayerPrefs.SetString がありません", hint:"変換したJSONを保存します。" },
+    { re:/SaveData\s+Load\s*\(\s*\)|JsonUtility\.FromJson/, msg:"Load() の実装がありません", hint:"PlayerPrefs.GetString で読み、JsonUtility.FromJson<SaveData> でオブジェクトに戻します。" } ] },
+
+{ id:"ISSUE-0047", phase:5, lv:4, cat:"システム", feature:"セーブ", title:"セーブデータ検証：壊れたセーブを弾く",
+  summary:"読み込み前にセーブデータの形式を検証する。",
+  file:"Scripts/SaveSystem.cs", learn:["入力検証","防御的プログラミング"],
+  spec:{ goal:"IsValidSave(string data) メソッドを追加。data が null または空文字なら false、\"SAVE:\" で始まらなければ false、それ以外は true を返す。",
+    io:"入力：data（セーブ文字列）/ 出力：bool（有効か）",
+    knowledge:"セーブデータは途中で壊れることがあります。読む前に形式を確かめれば、壊れたデータでゲームが起動不能になる事故を防げます。",
+    example:"public bool IsValidSave(string data) {\n    if (data == null || data == \"\") {\n        return false;\n    }\n    if (!data.StartsWith(\"SAVE:\")) {\n        return false;\n    }\n    return true;\n}" },
+  checks:[
+    { re:/bool\s+IsValidSave\s*\(\s*string\s+\w+\s*\)/, msg:"IsValidSave(string …) がありません", hint:"public bool IsValidSave(string data) { ... } の形です。" },
+    { re:/==\s*null/, msg:"null チェックがありません", hint:"if (data == null || data == \"\") で門前払いします。" },
+    { re:/StartsWith\s*\(\s*"SAVE:"\s*\)/, msg:"StartsWith(\"SAVE:\") の検証がありません", hint:"data.StartsWith(\"SAVE:\") で先頭を確認します。" } ] },
+
+{ id:"ISSUE-0048", phase:5, lv:3, cat:"Unity", feature:"サウンド", title:"サウンド：効果音を鳴らす",
+  summary:"AudioSource でSE再生を管理する AudioManager を作る。",
+  file:"Scripts/AudioManager.cs", learn:["AudioSource","AudioClip","Play"],
+  template:"// AudioManager.cs\n// 効果音・BGMの再生を管理します。\n\n",
+  spec:{ goal:"AudioSource audioSource と AudioClip attackSe を持つ AudioManager : MonoBehaviour を作り、PlayAttackSe() で再生する。",
+    io:"入力：なし / 出力：効果音",
+    knowledge:"AudioClip が「音のデータ」、AudioSource が「再生機」。clip を差し替えて Play() するのが基本形です。",
+    example:"public class AudioManager : MonoBehaviour {\n    public AudioSource audioSource;\n    public AudioClip attackSe;\n\n    public void PlayAttackSe() {\n        audioSource.clip = attackSe;\n        audioSource.Play();\n    }\n}" },
+  checks:[
+    { re:/class\s+AudioManager\s*:\s*MonoBehaviour/, msg:"AudioManager : MonoBehaviour がありません", hint:"public class AudioManager : MonoBehaviour { ... } と書きます。" },
+    { re:/AudioSource\s+\w+/, msg:"AudioSource 型の変数がありません", hint:"public AudioSource audioSource; を追加します。" },
+    { re:/\.Play\s*\(\s*\)/, msg:"Play() の呼び出しがありません", hint:"audioSource.Play(); で再生します。" } ] },
+
+{ id:"ISSUE-0049", phase:6, lv:4, cat:"仕上げ", feature:"ゲーム完成", title:"リファクタリング：マジックナンバーを消す",
+  summary:"PlayerStats の「裸の100」を定数化して仕上げる。完了すると最後のボスが出現…！",
+  file:"Scripts/PlayerStats.cs", learn:["const","リファクタリング","保守性"], unlock:"boss",
+  spec:{ goal:"PlayerStats に const int MaxHp = 100; を定義し、hp の初期値を MaxHp に変更する（他の挙動は変えない）。",
+    io:"変更なし（内部品質の改善）",
+    knowledge:"意味のある名前のない数値（マジックナンバー）はバグの温床。const は「変更できない値」を宣言し、コードの意図を伝えます。挙動を変えずに内部を整える作業をリファクタリングと呼びます。",
+    example:"public const int MaxHp = 100;\npublic int hp = MaxHp;" },
+  checks:[
+    { re:/const\s+int\s+MaxHp\s*=\s*100\s*;/, msg:"const int MaxHp = 100; がありません", hint:"クラスの先頭あたりに定数を宣言します。" },
+    { re:/int\s+hp\s*=\s*MaxHp\s*;/, msg:"hp の初期値が MaxHp になっていません", hint:"public int hp = MaxHp; に書き換えます。" } ] },
+
+{ id:"ISSUE-0050", phase:6, lv:5, cat:"システム", feature:"ボス", title:"ボスAI：HPで行動を変える",
+  summary:"残りHPに応じて行動パターンを切り替えるボスAIを作る。",
+  file:"Scripts/BossAI.cs", learn:["状態分岐","AI設計の基礎"],
+  template:"// BossAI.cs\n// ボスの行動パターンを制御します。\n\n",
+  spec:{ goal:"int hp = 300 を持つ BossAI クラスを作り、NextAction() で hp が 100 以下なら \"激怒\"、200 以下なら \"強攻撃\"、それ以外は \"通常攻撃\" を返す。",
+    io:"入力：なし / 出力：string（次の行動）",
+    knowledge:"条件は「厳しい方から」判定するのが鉄則。逆順にすると先に緩い条件に引っかかって激怒モードに入りません。",
+    example:"public class BossAI {\n    public int hp = 300;\n\n    public string NextAction() {\n        if (hp <= 100) {\n            return \"激怒\";\n        } else if (hp <= 200) {\n            return \"強攻撃\";\n        }\n        return \"通常攻撃\";\n    }\n}" },
+  checks:[
+    { re:/class\s+BossAI/, msg:"BossAI クラスがありません", hint:"public class BossAI { ... } を定義します。" },
+    { re:/string\s+NextAction\s*\(\s*\)/, msg:"NextAction() がありません", hint:"public string NextAction() { ... } の形です。" },
+    { re:/hp\s*<=\s*100/, msg:"hp <= 100 の判定がありません", hint:"厳しい条件（hp <= 100）から先に判定します。" },
+    { re:/else\s+if/, msg:"else if による多段分岐がありません", hint:"if → else if → 通常攻撃の順で分岐します。" } ] },
+
+{ id:"ISSUE-0051", phase:6, lv:4, cat:"システム", feature:"進行管理", title:"GameManager：ゲームオーバーとリスタート",
+  summary:"ゲーム全体の状態（プレイ中/ゲームオーバー）を管理する。",
+  file:"Scripts/GameManager.cs", learn:["ゲーム状態管理","フラグ設計"],
+  template:"// GameManager.cs\n// ゲーム全体の進行を管理します。\n\n",
+  spec:{ goal:"bool isGameOver を持つ GameManager クラスを作り、GameOver() で true に、Restart() で false に戻す。",
+    io:"入力：なし / 出力：なし（状態更新）",
+    knowledge:"「今ゲームがどういう状態か」を一箇所で管理すると、UIも敵もそれを見るだけで済みます。状態の乱立はバグの温床です。",
+    example:"public class GameManager {\n    public bool isGameOver = false;\n\n    public void GameOver() {\n        isGameOver = true;\n    }\n\n    public void Restart() {\n        isGameOver = false;\n    }\n}" },
+  checks:[
+    { re:/class\s+GameManager/, msg:"GameManager クラスがありません", hint:"public class GameManager { ... } を定義します。" },
+    { re:/bool\s+isGameOver/, msg:"bool isGameOver がありません", hint:"public bool isGameOver = false; を追加します。" },
+    { re:/void\s+GameOver\s*\(\s*\)/, msg:"GameOver() がありません", hint:"public void GameOver() { isGameOver = true; } と書きます。" },
+    { re:/void\s+Restart\s*\(\s*\)/, msg:"Restart() がありません", hint:"public void Restart() { isGameOver = false; } と書きます。" } ] },
+
+{ id:"ISSUE-0052", phase:6, lv:4, cat:"システム", feature:"進行管理", title:"タイトル画面：ゲームの入口を作る",
+  summary:"タイトル→プレイ開始の流れを GameManager に足す。",
+  file:"Scripts/GameManager.cs", learn:["画面遷移","フラグの組み合わせ"],
+  spec:{ goal:"bool isTitle（初期値 true）を追加し、StartGame() で isTitle を false にしてゲームを開始する。",
+    io:"入力：開始操作 / 出力：なし（状態更新）",
+    knowledge:"タイトルもゲームオーバーも「状態」の一つ。状態が増えてきたら enum にまとめるのが次の一手です。",
+    example:"public bool isTitle = true;\n\npublic void StartGame() {\n    isTitle = false;\n}" },
+  checks:[
+    { re:/bool\s+isTitle\s*=\s*true/, msg:"bool isTitle = true がありません", hint:"public bool isTitle = true; を追加します。" },
+    { re:/void\s+StartGame\s*\(\s*\)/, msg:"StartGame() がありません", hint:"public void StartGame() { isTitle = false; } と書きます。" },
+    { re:/isTitle\s*=\s*false/, msg:"isTitle を false にする処理がありません", hint:"StartGame の中で isTitle = false; します。" } ] },
+
+{ id:"ISSUE-0053", phase:6, lv:3, cat:"品質", feature:"バランス", title:"バランス調整：数値を一元管理する",
+  summary:"ゲームバランスの定数を BalanceConfig に集約する。",
+  file:"Scripts/BalanceConfig.cs", learn:["定数の集約","調整しやすい設計"],
+  template:"// BalanceConfig.cs\n// ゲームバランスの定数を集約します。\n\n",
+  spec:{ goal:"public const int で PLAYER_MAX_HP = 100、ENEMY_BASE_ATK = 8、CRIT_RATE = 20 を3つ以上定義した BalanceConfig クラスを作る。",
+    io:"入力：なし / 出力：なし（定数の提供）",
+    knowledge:"バランス調整のたびにコードを探し回るのは非効率。数値を1ファイルに集めればプランナーとの共同作業も楽になります。",
+    example:"public class BalanceConfig {\n    public const int PLAYER_MAX_HP = 100;\n    public const int ENEMY_BASE_ATK = 8;\n    public const int CRIT_RATE = 20;\n}" },
+  checks:[
+    { re:/class\s+BalanceConfig/, msg:"BalanceConfig クラスがありません", hint:"public class BalanceConfig { ... } を定義します。" },
+    { re:/const\s+int\s+PLAYER_MAX_HP\s*=\s*100/, msg:"PLAYER_MAX_HP = 100 がありません", hint:"public const int PLAYER_MAX_HP = 100; を追加します。" },
+    { re:/const\s+int\s+CRIT_RATE/, msg:"CRIT_RATE 定数がありません", hint:"public const int CRIT_RATE = 20; を追加します。" } ] },
+
+{ id:"ISSUE-0054", phase:6, lv:3, cat:"品質", feature:"ドキュメント", title:"XMLコメント：チームのためのドキュメント",
+  summary:"/// のドキュメントコメントをメソッドに付ける。",
+  file:"Scripts/Player.cs", learn:["XMLドキュメントコメント","summaryタグ"],
+  spec:{ goal:"Player.cs のいずれかのメソッドの直前に /// <summary> 形式のドキュメントコメントを付ける。",
+    io:"入力：なし / 出力：なし（コメントのみ）",
+    knowledge:"/// で始めるとエディタがメソッドの説明をホバード表示してくれます。未来の自分とチームメイトへの手紙です。",
+    example:"/// <summary>\n/// 攻撃力と防御力から最終ダメージを計算する\n/// </summary>" },
+  checks:[
+    { re:/\/\/\/\s*<summary>/, msg:"/// <summary> がありません", hint:"メソッドの直前に /// <summary> 説明 /// </summary> を書きます。" },
+    { re:/\/\/\/\s*<\/summary>/, msg:"/// </summary> の閉じタグがありません", hint:"閉じタグ /// </summary> も必要です。" } ] },
+
+{ id:"ISSUE-0055", phase:6, lv:4, cat:"品質", feature:"デバッグ", title:"条件付きコンパイル：デバッグ機能を仕込む",
+  summary:"#if UNITY_EDITOR で開発中だけ有効なチートを作る。",
+  file:"Scripts/DebugTools.cs", learn:["#if / #endif","UNITY_EDITOR","ビルド分岐"],
+  template:"// DebugTools.cs\n// 開発中だけ有効なデバッグ機能です。\n\n",
+  spec:{ goal:"DebugTools クラスを作り、#if UNITY_EDITOR 〜 #endif で囲った GodMode() メソッドを定義する。",
+    io:"入力：なし / 出力：なし（エディタ限定機能）",
+    knowledge:"#if UNITY_EDITOR で囲んだコードは製品ビルドに含まれません。チートやデバッグ表示を安全に同梱できます。",
+    example:"public class DebugTools {\n#if UNITY_EDITOR\n    public void GodMode() {\n        // HPを減らなくする（開発用）\n    }\n#endif\n}" },
+  checks:[
+    { re:/class\s+DebugTools/, msg:"DebugTools クラスがありません", hint:"public class DebugTools { ... } を定義します。" },
+    { re:/#if\s+UNITY_EDITOR/, msg:"#if UNITY_EDITOR がありません", hint:"デバッグ用コードを #if UNITY_EDITOR で囲います。" },
+    { re:/#endif/, msg:"#endif がありません", hint:"囲いの終わりに #endif が必要です。" } ] },
+
+{ id:"ISSUE-0056", phase:6, lv:2, cat:"品質", feature:"QA", title:"通しプレイ：完成ビルドを確認する",
+  summary:"プレビューでゲームを起動し、実装したシステムを確認する。",
+  file:null, learn:["QAの基本","通し確認"], action:"preview",
+  spec:{ goal:"Buildタブの「▶ プレビュー」でゲームを起動する。",
+    knowledge:"リリース前の「通しプレイ」は必須工程。作った本人が一番のテスターです。動かして違和感がないか確かめましょう。",
+    example:"Buildタブ → ▶ プレビュー" }, checks:[] },
+
+{ id:"ISSUE-0057", phase:7, lv:2, cat:"Unity", feature:"リリース", title:"ビルド情報：バージョンを埋め込む",
+  summary:"リリース物にバージョン情報を持たせる BuildInfo を作る。",
+  file:"Scripts/BuildInfo.cs", learn:["バージョン管理","リリース準備"],
+  template:"// BuildInfo.cs\n// リリースビルドの情報を保持します。\n\n",
+  spec:{ goal:"public const string で VERSION = \"1.0.0\" と TITLE = \"CodeCraft Chronicles\" を持つ BuildInfo クラスを作る。",
+    io:"入力：なし / 出力：なし（定数の提供）",
+    knowledge:"バグ報告が来たとき、まず確認するのは「どのバージョンか」。ビルドに埋め込んでおくと調査が早くなります。",
+    example:"public class BuildInfo {\n    public const string VERSION = \"1.0.0\";\n    public const string TITLE = \"CodeCraft Chronicles\";\n}" },
+  checks:[
+    { re:/class\s+BuildInfo/, msg:"BuildInfo クラスがありません", hint:"public class BuildInfo { ... } を定義します。" },
+    { re:/const\s+string\s+VERSION\s*=\s*"1\.0\.0"/, msg:"VERSION = \"1.0.0\" がありません", hint:"public const string VERSION = \"1.0.0\"; を追加します。" },
+    { re:/const\s+string\s+TITLE/, msg:"TITLE 定数がありません", hint:"public const string TITLE = \"CodeCraft Chronicles\"; を追加します。" } ] },
+
+{ id:"ISSUE-0058", phase:7, lv:1, cat:"Git", feature:"リリース", title:"最終コミット：リリース内容を確定する",
+  summary:"すべての変更をコミットしてリリース内容を確定する。",
+  file:null, learn:["リリースフロー","コミットの粒度"], action:"commit",
+  spec:{ goal:"Gitタブでリリース用のコミットを作る（例：「v1.0.0 リリース準備」）。",
+    knowledge:"リリース直前のコミットは「どこを出荷したか」の記録。タグ付けの基点にもなる大事な一手です。",
+    example:"例：「v1.0.0 リリース準備」" }, checks:[] },
+
+{ id:"ISSUE-0059", phase:7, lv:1, cat:"Git", feature:"リリース", title:"最終Push：チームに届ける",
+  summary:"リリースコミットをリモートに Push する。",
+  file:null, learn:["push","リリース共有"], action:"push",
+  spec:{ goal:"Gitタブの Push ボタンでリモートに反映する。",
+    knowledge:"Push して初めてチーム全員が最新版を受け取れます。「手元では動く」はまだ仕事が終わっていない合図。",
+    example:"Gitタブ → Push" }, checks:[] },
+
+{ id:"ISSUE-0060", phase:7, lv:2, cat:"出荷", feature:"Unity出力", title:"出荷：Unityプロジェクトとして書き出す",
+  summary:"書いてきたC#コード一式をUnity用にエクスポートする。これが最後の仕事！",
+  file:null, learn:["成果物の納品","Unityへの橋渡し"], action:"export",
+  spec:{ goal:"画面右上の「🎮 Unity出力」ボタンを押して、プロジェクト一式（.zip）をダウンロードする。",
+    knowledge:"zipにはあなたが書いた全C#スクリプトと、Unityでのセットアップ手順書が入っています。Unity Hubで新規2Dプロジェクトを作り、Assets にコピーすれば本物の開発環境で続きが作れます。",
+    example:"（コード不要。ボタンを押せば完了）" }, checks:[] }
+];
+const issueById = id => ISSUES.find(i=>i.id===id);
+const FEATURES = [
+  { key:"hud",  label:"HP表示" }, { key:"enemy", label:"エネミー出現" },
+  { key:"battle", label:"戦闘（攻撃）" }, { key:"items", label:"アイテム" },
+  { key:"inventory", label:"インベントリ" }, { key:"npc", label:"NPC会話" },
+  { key:"save", label:"セーブ" }, { key:"boss", label:"ボス戦" }
+];
+function unlockedFeatures(){
+  const f = {};
+  ISSUES.forEach(is=>{ if(is.unlock) f[is.unlock] = (state.issues[is.id]||{}).status==="done"; });
+  return f;
+}
+</script>
+<script>
+"use strict";
+/* =========================================================
+   Issue エンジン
+   状態: locked → open → wip → built → done
+========================================================= */
+const STATUS_LABEL = { locked:"ロック中", open:"未着手", wip:"作業中", built:"レビュー待ち", done:"完了" };
+const STATUS_CLS = { locked:"", open:"", wip:"wip", built:"built", done:"done" };
+
+function issueState(id){ return state.issues[id] || (state.issues[id] = { status:"locked" }); }
+function doneCount(){ return ISSUES.filter(i=>issueState(i.id).status==="done").length; }
+function currentPhase(){
+  const firstOpen = ISSUES.find(i=>issueState(i.id).status!=="done");
+  return firstOpen ? firstOpen.phase : 7;
+}
+
+function unlockNextIssues(){
+  // 順番制：先頭から連続してdoneの次を1件開放
+  for(const is of ISSUES){
+    const st = issueState(is.id);
+    if(st.status==="done") continue;
+    if(st.status==="locked"){
+      st.status = "open";
+      notify("📋", is.id + "「" + is.title + "」が割り当てられました");
+    }
+    break;
+  }
+}
+
+function renderIssues(){
+  const list = $("issueList");
+  let html = "";
+  let lastPhase = 0;
+  ISSUES.forEach(is=>{
+    const st = issueState(is.id);
+    if(is.phase !== lastPhase){
+      lastPhase = is.phase;
+      html += `<div class="panel-h" style="padding-left:6px">PHASE ${is.phase}・${PHASES[is.phase-1].name}</div>`;
+    }
+    const locked = st.status==="locked";
+    html += `<div class="iss ${locked?"locked":""} ${is.id===state.currentIssue?"sel":""}" data-id="${is.id}">
+      <div class="no">${is.id}</div>
+      <div class="t">${locked?"🔒 ":""}${esc(is.title)}</div>
+      <div class="badges"><span class="badge lv">Lv.${is.lv}</span><span class="badge">${esc(is.cat)}</span><span class="badge ${STATUS_CLS[st.status]}">${STATUS_LABEL[st.status]}</span></div>
+    </div>`;
+  });
+  list.innerHTML = html;
+  list.querySelectorAll(".iss:not(.locked)").forEach(el=>{
+    el.addEventListener("click", ()=>selectIssue(el.dataset.id));
+  });
+  $("issCnt").textContent = doneCount() + "/" + ISSUES.length;
+}
+
+function selectIssue(id){
+  state.currentIssue = id;
+  renderIssues(); renderInspector(); openTab("rbIssue");
+  persist();
+}
+
+function renderInspector(){
+  const host = $("rbIssue");
+  const id = state.currentIssue;
+  if(!id){ host.innerHTML = '<p style="color:var(--faint);padding:8px">左のISSUESから課題を選択してください。</p>'; return; }
+  const is = issueById(id);
+  const st = issueState(id);
+  const sp = is.spec || {};
+  let html = `
+    <div class="no" style="font-family:var(--mono);font-size:11px;color:var(--faint)">${is.id}</div>
+    <h3>${esc(is.title)}</h3>
+    <div class="meta">
+      <span class="badge lv">Lv.${is.lv}</span><span class="badge">Phase ${is.phase}・${PHASES[is.phase-1].name}</span>
+      <span class="badge">${esc(is.cat)}</span><span class="badge ${STATUS_CLS[st.status]}">${STATUS_LABEL[st.status]}</span>
+    </div>
+    <p style="color:var(--sub);font-size:12.5px;line-height:1.7">${esc(is.summary)}</p>
+    <div class="spec">
+      <div><span class="lb">ゴール</span>${esc(sp.goal||"—")}</div>
+      ${sp.io?`<div><span class="lb">入出力</span>${esc(sp.io)}</div>`:""}
+      ${is.file?`<div><span class="lb">対象ファイル</span><code>${esc(is.file)}</code></div>`:""}
+      ${sp.knowledge?`<div><span class="lb">💡 新しい知識</span>${esc(sp.knowledge)}</div>`:""}
+      ${is.learn?`<div><span class="lb">このIssueで学ぶこと</span>${is.learn.map(l=>`<span class="badge">${esc(l)}</span>`).join(" ")}</div>`:""}
+    </div>`;
+  if(st.status!=="done" && sp.example){
+    html += `<details style="font-size:12px;color:var(--sub)"><summary style="cursor:pointer;color:var(--accent)">📘 実装例を見る（詰まったとき用）</summary><div class="spec" style="margin-top:6px"><div><pre>${esc(sp.example)}</pre></div></div></details>`;
+  }
+  // チェックリスト（コード課題のみ）
+  if(is.checks.length && (st.status==="wip"||st.status==="built")){
+    const results = runChecks(is);
+    html += `<div><span class="lb" style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--faint)">完了条件</span><ul class="checklist">` +
+      results.map(r=>`<li class="${r.ok?"ok":""}">${r.ok?"✅":"⬜"} ${esc(r.msg.replace(/がありません|が見つかりません|していません.*|になっていません/,""))}</li>`).join("") + `</ul></div>`;
+  }
+  html += `<div id="issueActions"></div>`;
+  host.innerHTML = html;
+
+  const act = $("issueActions");
+  const btn = (label, cls, fn, dis)=>{
+    const b=document.createElement("button"); b.textContent=label; if(cls)b.className=cls; b.disabled=!!dis; b.addEventListener("click",fn); act.appendChild(b); return b;
+  };
+  if(st.status==="open") btn("このIssueに着手する", "acc", ()=>startIssue(id));
+  if(st.status==="wip"){
+    if(is.file) btn("対象ファイルを開く", "", ()=>openFile(is.file));
+    if(is.action==="commit") btn("Gitパネルへ", "", ()=>openTab("tbGit"));
+    else if(is.action==="terminal-ls") btn("Terminalへ", "", ()=>openTab("tbTerminal"));
+    else if(is.action==="export") btn("準備OK！右上のボタンを押そう", "", ()=>{ notify("🎮","右上の「Unity出力」ボタンを押してください"); }, false);
+    else btn("▶ Buildして確認", "acc", ()=>doBuild());
+  }
+  if(st.status==="built") btn("👀 レビューを依頼する", "acc", ()=>requestReview());
+  if(st.status==="done" && is.unlock) btn("🕹 プレビューで確認", "", ()=>openPreview());
+}
+
+function startIssue(id){
+  const is = issueById(id);
+  const st = issueState(id);
+  if(st.status!=="open") return;
+  st.status = "wip";
+  if(is.file && !state.files[is.file]){
+    state.files[is.file] = { content: is.template || "", committed:false };
+    clog("info", "新規ファイルを作成: " + is.file);
+  }
+  if(is.file) openFile(is.file);
+  chatMsg("nishino", is.id + " の着手を確認しました。仕様書をよく読んで進めてくださいね。", true);
+  renderIssues(); renderInspector(); updateStatus(); persist();
+}
+
+/* ---------- 簡易C#構文チェック ---------- */
+function syntaxCheck(path, src){
+  const errs = [];
+  let depth=0, line=1, inStr=false, inCmt=false;
+  for(let i=0;i<src.length;i++){
+    const ch=src[i], nx=src[i+1];
+    if(ch==="\n"){ line++; inStr=false; inCmt=false; continue; }
+    if(inCmt) continue;
+    if(ch==='"' && src[i-1]!=="\\"){ inStr=!inStr; continue; }
+    if(inStr) continue;
+    if(ch==="/" && nx==="/"){ inCmt=true; continue; }
+    if(ch==="{") depth++;
+    if(ch==="}"){ depth--; if(depth<0){ errs.push({line, msg:"対応する { のない } があります"}); depth=0; } }
+  }
+  if(depth>0) errs.push({ line, msg:"閉じ括弧 } が " + depth + " 個足りません" });
+  return errs;
+}
+
+function runChecks(is){
+  return is.checks.map(c=>{
+    const path = c.file || is.file;
+    const f = state.files[path];
+    const content = (path===state.openFile) ? $("code").value : (f ? f.content : "");
+    return { ok: c.re.test(content), msg:c.msg, hint:c.hint, path };
+  });
+}
+
+/* ---------- Build ---------- */
+function doBuild(){
+  if(!state.started) return;
+  saveFile(); // 未保存分を自動保存
+  openTab("rbConsole");
+  clog("info", "========== Build 開始 ==========");
+  let errCount = 0;
+  // 1) 全Scriptsの構文チェック
+  Object.entries(state.files).filter(([p])=>p.startsWith("Scripts/")).forEach(([p,f])=>{
+    syntaxCheck(p,f.content).forEach(e=>{ errCount++; clog("err", `${p}(${e.line}): error CS9001: ${e.msg}`); });
+  });
+  // 2) 現在Issueの仕様チェック
+  const id = state.currentIssue;
+  const is = id && issueById(id);
+  const st = is && issueState(id);
+  let specFails = [];
+  if(is && st.status==="wip" && is.checks.length){
+    specFails = runChecks(is).filter(r=>!r.ok);
+    specFails.forEach(r=>clog("warn", `${r.path}: 仕様未達: ${r.msg}`));
+  }
+  const ok = errCount===0;
+  state.lastBuild = { ok, when: now() };
+  $("buildLamp").className = ok? "ok":"ng";
+  $("buildText").textContent = ok? "Build 成功（" + now() + "）" : "Build 失敗：エラー " + errCount + " 件";
+  $("sbBuild").textContent = ok? "成功":"失敗";
+  dot("dotBuild");
+  if(!ok){
+    clog("err", `Build 失敗：エラー ${errCount} 件。上のメッセージを確認して直してみよう。`);
+  } else if(is && st.status==="wip" && !is.action){
+    if(specFails.length){
+      clog("ok", "コンパイルは成功。ただし仕様を満たしていない箇所が " + specFails.length + " 件あります。");
+      clog("info", "💡 ヒント: " + specFails[0].hint);
+    } else {
+      st.status = "built";
+      clog("ok", "Build 成功！仕様をすべて満たしました。レビューを依頼しましょう。");
+      notify("✅", id + " がBuildを通過しました。レビュー依頼へ進めます");
+      dot("dotRev");
+    }
+  } else if(ok){
+    clog("ok", "Build 成功。");
+  }
+  if(is && is.action==="build" && ok && st.status==="wip") completeIssue(is);
+  // ISSUE-0001はbuild完了型ではなく通常フロー
+  renderIssues(); renderInspector(); updateStatus(); persist();
+}
+
+/* ---------- レビュー ---------- */
+const REVIEW_PRAISE = [
+  "ロジックは問題なさそうです。インデントも揃っていて読みやすいですね。",
+  "いい感じです。変数名が具体的で意図が伝わります。",
+  "OKです。仕様どおり実装できています。この調子！",
+  "問題ありません。エッジケース（境界値）も考慮できていて素晴らしい。"
+];
+const REVIEW_TIP = [
+  "プロの現場ではこの後テストコードも書きます。覚えておいて損はないですよ。",
+  "ちなみに同じ処理が3回出てきたらメソッド化を検討しましょう。",
+  "コミットメッセージもコードの一部。丁寧に書く習慣をつけましょう。",
+  "迷ったら「読む人が驚かないコード」を目指すとうまくいきます。"
+];
+function requestReview(){
+  const id = state.currentIssue;
+  const is = issueById(id);
+  const st = issueState(id);
+  if(st.status!=="built") return;
+  openTab("rbReview");
+  const fails = runChecks(is).filter(r=>!r.ok);
+  const host = $("rbReview");
+  if(fails.length){
+    st.status = "wip";
+    host.innerHTML = `<div class="rev ng"><div class="who">👩‍💻 真壁（先輩エンジニア）</div>コードが仕様から外れてしまっています。修正してもう一度Buildからお願いします。<br><br>✖ ${esc(fails[0].msg)}<br>💡 ${esc(fails[0].hint)}</div>`;
+    renderIssues(); renderInspector(); persist();
+    return;
+  }
+  const praise = REVIEW_PRAISE[doneCount() % REVIEW_PRAISE.length];
+  const tip = REVIEW_TIP[doneCount() % REVIEW_TIP.length];
+  host.innerHTML = `
+    <div class="rev ok"><div class="who">👩‍💻 真壁（先輩エンジニア）— 承認 ✅</div>${esc(praise)}<br><span style="color:var(--sub)">${esc(tip)}</span></div>
+    <div id="mergeAct"></div>`;
+  const b = document.createElement("button");
+  b.className="ok"; b.textContent="✓ マージして完了にする";
+  b.addEventListener("click", ()=>{ doCommit(is.id + " " + is.title, true); completeIssue(is); });
+  $("mergeAct").appendChild(b);
+  chatMsg("makabe", id + " のレビュー完了しました。承認済みなのでマージしてOKです！");
+}
+
+function completeIssue(is){
+  const st = issueState(is.id);
+  if(st.status==="done") return;
+  st.status = "done";
+  notify("🎉", is.id + "「" + is.title + "」完了！");
+  if(is.unlock){
+    const label = (FEATURES.find(f=>f.key===is.unlock)||{}).label || is.unlock;
+    notify("🔓", "CodeCraft Chronicles に「" + label + "」が実装されました！Buildタブから確認できます");
+    chatMsg("sudo", "おつかれさま！「" + label + "」がゲームに反映されました。Buildタブのプレビューで動かしてみてくださいね。");
+  }
+  const cleared = doneCount()===ISSUES.length;
+  if(cleared){
+    chatMsg("nishino", "……全Issue完了、おつかれさまでした！『CodeCraft Chronicles』はあなたの手で完成しました。ここから先は、本物のUnityで。あなたならもう作れます。");
+    notify("🏆", "全Issue完了！Catalyst クリアおめでとうございます！");
+  } else {
+    const nextChat = { 6:"ここからはいよいよC#のコードを書いてもらいます。基礎が一番大事。ゆっくりどうぞ。", 18:"C#基礎はこれで一巡。次は継承やインターフェース、設計の道具を覚えていきます。", 26:"ここからはUnityの作法に入ります。MonoBehaviourは最重要ワードですよ。", 34:"いよいよゲームシステム本番。あなたのコードが直接ゲームに反映されていきます！", 48:"残りわずか。仕上げの品質改善も立派な仕事です。", 56:"最後の仕上げです。ビルド情報を整えて、Unity出力で納品しましょう！" }[doneCount()];
+    if(nextChat) chatMsg("nishino", nextChat);
+  }
+  unlockNextIssues();
+  renderIssues(); renderInspector(); renderBuildFeats(); updateStatus(); persist();
+}
+
+function onAction(kind){
+  const id = state.currentIssue;
+  ISSUES.forEach(is=>{
+    const st = issueState(is.id);
+    if(st.status==="wip" && is.action && is.action===kind){
+      completeIssue(is);
+    }
+  });
+}
+
+/* ---------- Git ---------- */
+function doCommit(msg, silent){
+  msg = (msg||"").trim();
+  if(!msg){ clog("warn","コミットメッセージを入力してください"); openTab("tbGit"); return; }
+  const dirty = Object.entries(state.files).filter(([p,f])=>!f.committed);
+  const pendingCommitIssue = ISSUES.some(is=>is.action==="commit" && issueState(is.id).status==="wip");
+  if(!dirty.length && !silent && !pendingCommitIssue){ clog("info","コミットする変更がありません"); return; }
+  dirty.forEach(([p,f])=>f.committed=true);
+  const hash = Math.random().toString(16).slice(2,9);
+  state.git.commits.push({ hash, msg, when: now(), files: dirty.length });
+  state.git.ahead++;
+  $("commitMsg").value="";
+  renderGit(); renderExplorer();
+  if(!silent) clog("ok", `[main ${hash}] ${msg}（${dirty.length} ファイル）`);
+  onAction("commit");
+  persist();
+}
+function renderGit(){
+  $("gitLog").innerHTML = state.git.commits.slice().reverse().map(c=>
+    `<div class="commit"><span class="hash">${c.hash}</span><span class="msg">${esc(c.msg)}</span><span class="when">${c.when}</span></div>`
+  ).join("") || '<div style="color:var(--faint);padding:8px 4px;font-size:12px">まだコミットがありません</div>';
+}
+
+/* ---------- Unity出力（zip生成） ---------- */
+const CRC_TABLE = (()=>{ const t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320 ^ (c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(bytes){ let c=0xFFFFFFFF; for(let i=0;i<bytes.length;i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c>>>8); return (c ^ 0xFFFFFFFF)>>>0; }
+function makeZip(files){ // files: [{name, text}] — 無圧縮(store)
+  const enc = new TextEncoder();
+  const parts=[], central=[]; let offset=0;
+  const u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>>24)&255];
+  files.forEach(f=>{
+    const nameB = enc.encode(f.name), data = enc.encode(f.text);
+    const crc = crc32(data);
+    const local = new Uint8Array([80,75,3,4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(nameB.length), ...u16(0)]);
+    parts.push(local, nameB, data);
+    central.push({ nameB, crc, size:data.length, offset });
+    offset += local.length + nameB.length + data.length;
+  });
+  let cdSize=0;
+  central.forEach(c=>{
+    const rec = new Uint8Array([80,75,1,2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0), ...u32(c.crc), ...u32(c.size), ...u32(c.size), ...u16(c.nameB.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(c.offset)]);
+    parts.push(rec, c.nameB); cdSize += rec.length + c.nameB.length;
+  });
+  parts.push(new Uint8Array([80,75,5,6, ...u16(0), ...u16(0), ...u16(central.length), ...u16(central.length), ...u32(cdSize), ...u32(offset), ...u16(0)]));
+  return new Blob(parts, { type:"application/zip" });
+}
+function exportUnity(){
+  const files = [];
+  Object.entries(state.files).filter(([p])=>p.startsWith("Scripts/") && p.endsWith(".cs")).forEach(([p,f])=>{
+    files.push({ name:"CodeCraftChronicles/Assets/" + p, text: f.content });
+  });
+  files.push({ name:"CodeCraftChronicles/README_SETUP.md", text:
+`# CodeCraft Chronicles — Unityセットアップガイド
+
+このzipには、あなたがCatalystで書いたC#スクリプト一式が入っています。
+
+## 手順
+1. Unity Hub で新規プロジェクトを作成（テンプレート: 2D Core / Unity 2021 LTS 以降推奨）
+2. 本フォルダの Assets/Scripts をプロジェクトの Assets 配下にコピー
+3. SceneSetup.md の手順でシーンを構成
+4. 再生ボタンで実行！
+
+## 注意
+- スプライト素材は付属しません。仮の図形（Squareスプライト等）で動作確認できます。
+- PlayerController をプレイヤーのGameObjectにアタッチしてください。
+- 敵には Tag \"Enemy\" を設定すると接触ダメージが機能します。
+
+─ Catalyst Studio
+` });
+  files.push({ name:"CodeCraftChronicles/SceneSetup.md", text:
+`# シーン構成メモ（はじまりの町）
+
+| GameObject | コンポーネント | 備考 |
+|---|---|---|
+| Player | SpriteRenderer / Rigidbody2D / BoxCollider2D / PlayerController | Gravity Scale = 0 |
+| Slime x3 | SpriteRenderer / Rigidbody2D / BoxCollider2D | Tag = Enemy |
+| NPC | SpriteRenderer / BoxCollider2D (isTrigger) | 会話は DialogueSystem を利用 |
+| GameManager | 空オブジェクト | BattleSystem / SaveSystem の呼び出し拠点 |
+
+カメラ: Orthographic / Size 5
+` });
+  files.push({ name:"CodeCraftChronicles/ProjectInfo.json", text: JSON.stringify({ title:"CodeCraft Chronicles", author:"Catalyst新人開発者", exportedAt:new Date().toISOString(), scripts:files.length }, null, 2) });
+  const blob = makeZip(files);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "CodeCraftChronicles_UnityExport.zip";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  state.exported = true;
+  clog("ok", "Unityプロジェクトを書き出しました: CodeCraftChronicles_UnityExport.zip");
+  onAction("export");
+  persist();
+}
+
+/* ---------- ステータス更新 ---------- */
+function renderBuildFeats(){
+  const f = unlockedFeatures();
+  $("buildFeats").innerHTML = FEATURES.map(ft=>`<span class="feat ${f[ft.key]?"on":""}">${f[ft.key]?"✓ ":""}${ft.label}</span>`).join("") + '<span class="feat on">✓ 移動</span>';
+}
+function updateStatus(){
+  const done = doneCount(), total = ISSUES.length;
+  const pct = Math.round(done/total*100);
+  $("hdPct").textContent = pct + "%";
+  $("hdPhase").textContent = currentPhase();
+  $("hdBarFill").style.width = pct + "%";
+  $("sbPct").textContent = pct + "%";
+  $("sbBarFill").style.width = pct + "%";
+  $("sbIssues").textContent = done + " / " + total;
+  $("sbPhase").textContent = "Phase " + currentPhase() + " " + PHASES[currentPhase()-1].name;
+  if(state.lastBuild) $("sbBuild").textContent = state.lastBuild.ok ? "成功" : "失敗";
+  // Unity出力ボタン：ISSUE-0020以外全完了で有効
+  const readyForExport = ISSUES.filter(i=>i.action!=="export").every(i=>issueState(i.id).status==="done");
+  $("btnUnity").disabled = !readyForExport;
+  $("btnCccSave").disabled = !unlockedFeatures().save;
+}
+</script>
+<script>
+"use strict";
+/* =========================================================
+   CodeCraft Chronicles プレビュー（Canvas 2D）
+   完了したIssueに応じて機能が段階解除される
+========================================================= */
+const TILE = 32, MAP_W = 20, MAP_H = 12;
+// 0草 1木 2水 3道 4家
+const MAP = [
+  "11111111111111111111",
+  "10000030000000000221",
+  "10440030000440002221",
+  "10440033333443000221",
+  "10000030003330000021",
+  "13333330300000000001",
+  "10000000300044000001",
+  "10000000333344000101",
+  "10011000000030000001",
+  "10011000000033333301",
+  "10000000000000000001",
+  "11111111111111111111"
+];
+const solid = (tx,ty)=> tx<0||ty<0||tx>=MAP_W||ty>=MAP_H || "124".includes(MAP[ty][tx]);
+
+let game = null, rafId = null;
+function newGameState(){
+  return {
+    px: 3*TILE, py: 5*TILE, dir:[0,1], hp:100, inv:["ポーション"],
+    defeats:0, quest:"none", // none|active|readyToTurnIn|done
+    enemies:[], items:[], msg:"", msgT:0, atkT:0, hurtT:0, invOpen:false, invSel:0,
+    dlg:null, dlgIdx:0, bossDefeated:false, bannerT:0
+  };
+}
+function spawnWorld(g, f){
+  g.enemies = [];
+  if(f.enemy){
+    [[15,2],[16,8],[6,9]].forEach(([tx,ty],i)=>g.enemies.push({ x:tx*TILE, y:ty*TILE, hp:30, max:30, dir:Math.random()*6.28, t:0, boss:false, dead:false, id:i }));
+  }
+  if(f.boss && !g.bossDefeated) g.enemies.push({ x:17*TILE, y:4*TILE, hp:120, max:120, dir:0, t:0, boss:true, dead:false, id:99 });
+  g.items = f.items ? [{ x:8*TILE, y:2*TILE, taken:false }, { x:4*TILE, y:10*TILE, taken:false }] : [];
+}
+const keys = {};
+function openPreview(){
+  $("pvModal").classList.add("on");
+  const f = unlockedFeatures();
+  $("pvVer").textContent = "build " + (doneCount()) + "." + ISSUES.length;
+  game = newGameState();
+  // セーブがあれば復元
+  if(f.save && state.ccc.save){
+    Object.assign(game, state.ccc.save);
+    game.msg = "セーブデータを読み込みました"; game.msgT = 120;
+  }
+  spawnWorld(game, f);
+  $("game").focus();
+  onAction("preview");
+  if(rafId) cancelAnimationFrame(rafId);
+  loop();
+}
+function closePreview(){
+  $("pvModal").classList.remove("on");
+  if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
+}
+function cccSave(){
+  if(!unlockedFeatures().save || !game) return;
+  state.ccc.save = { px:game.px, py:game.py, hp:game.hp, inv:game.inv.slice(), defeats:game.defeats, quest:game.quest, bossDefeated:game.bossDefeated };
+  game.msg = "セーブしました！"; game.msgT = 100;
+  persist();
+}
+
+function tryMove(g, dx, dy){
+  const nx = g.px+dx, ny = g.py+dy, m=6;
+  const corners = [[nx+m,ny+m],[nx+TILE-m,ny+m],[nx+m,ny+TILE-m],[nx+TILE-m,ny+TILE-m]];
+  if(!corners.some(([cx,cy])=>solid(Math.floor(cx/TILE), Math.floor(cy/TILE)))){ g.px=nx; g.py=ny; }
+}
+
+function update(){
+  const g = game, f = unlockedFeatures();
+  if(!g) return;
+  if(g.msgT>0) g.msgT--;
+  if(g.atkT>0) g.atkT--;
+  if(g.hurtT>0) g.hurtT--;
+  if(g.bannerT>0) g.bannerT--;
+  if(g.invOpen || g.dlg) return; // UI中は世界停止
+  const sp = 2.4;
+  let dx=0, dy=0;
+  if(keys.ArrowLeft||keys.a) dx-=sp; if(keys.ArrowRight||keys.d) dx+=sp;
+  if(keys.ArrowUp||keys.w) dy-=sp; if(keys.ArrowDown||keys.s) dy+=sp;
+  if(dx||dy){ g.dir = [Math.sign(dx)||0, Math.sign(dy)|| (dx?0:Math.sign(dy))]; if(dx&&dy){dx*=.7;dy*=.7;} tryMove(g,dx,0); tryMove(g,0,dy); }
+  // 敵
+  g.enemies.forEach(e=>{
+    if(e.dead) return;
+    e.t--;
+    const spd = e.boss? .9 : .7;
+    // プレイヤー追跡（戦闘実装後は近づくと寄ってくる）
+    const ddx = g.px-e.x, ddy = g.py-e.y, dist = Math.hypot(ddx,ddy);
+    if(f.battle && dist<130){ e.x += ddx/dist*spd; e.y += ddy/dist*spd; }
+    else { if(e.t<=0){ e.dir = Math.random()*6.28; e.t = 60+Math.random()*90; } const nx=e.x+Math.cos(e.dir)*spd*.6, ny=e.y+Math.sin(e.dir)*spd*.6; if(!solid(Math.floor((nx+16)/TILE),Math.floor((ny+16)/TILE))){ e.x=nx; e.y=ny; } }
+    // 接触
+    if(dist < 24 && g.hurtT<=0){
+      if(f.battle && f.hud){ g.hp = Math.max(0, g.hp-(e.boss?18:10)); g.hurtT = 50; if(g.hp<=0){ g.msg="倒れてしまった……広場で目を覚ました"; g.msgT=160; g.px=3*TILE; g.py=5*TILE; g.hp=100; } }
+      else { // 押し戻されるだけ
+        tryMove(g, Math.sign(g.px-e.x)*8, 0); tryMove(g, 0, Math.sign(g.py-e.y)*8); g.hurtT=30;
+        if(!f.battle){ g.msg="（まだ攻撃できない……戦闘システムが未実装だ）"; g.msgT=90; }
+      }
+    }
+  });
+  // アイテム取得
+  if(f.items) g.items.forEach(it=>{
+    if(!it.taken && Math.hypot(g.px-it.x, g.py-it.y)<22){ it.taken=true; g.inv.push("ポーション"); g.msg="ポーションを拾った！"+(f.inventory?"（Iでインベントリ）":""); g.msgT=110; }
+  });
+}
+
+function attack(){
+  const g = game, f = unlockedFeatures();
+  if(!f.battle || g.atkT>0 || g.invOpen || g.dlg) return;
+  g.atkT = 22;
+  const ax = g.px+16 + g.dir[0]*30, ay = g.py+16 + g.dir[1]*30;
+  g.enemies.forEach(e=>{
+    if(e.dead) return;
+    if(Math.hypot(e.x+16-ax, e.y+16-ay) < 34){
+      e.hp -= 12;
+      if(e.hp<=0){
+        e.dead = true; g.defeats++;
+        if(e.boss){ g.bossDefeated=true; g.bannerT=400; g.msg="ボススライムを倒した！『CodeCraft Chronicles』クリア！"; g.msgT=300; chatMsg("sudo","プレビューでボス撮破を確認しました！デバッグプレイありがとうございます！"); }
+        else {
+          g.msg = "スライムを倒した！（討伐数 "+g.defeats+"）"; g.msgT=100;
+          if(f.items && Math.random()<.6){ g.items.push({ x:e.x, y:e.y, taken:false }); }
+          setTimeout(()=>{ if(game && !e.boss){ e.dead=false; e.hp=e.max; e.x=(2+Math.random()*16)*TILE; e.y=(2+Math.random()*8)*TILE; } }, 9000);
+        }
+        if(g.quest==="active" && g.defeats>=3) g.quest="readyToTurnIn";
+      }
+    }
+  });
+}
+
+const NPC_POS = { x:10*TILE, y:2*TILE };
+function talk(){
+  const g = game, f = unlockedFeatures();
+  if(!f.npc || g.invOpen) return;
+  if(g.dlg){ // 次のセリフへ
+    g.dlgIdx++;
+    if(g.dlgIdx >= g.dlg.length){
+      if(g.quest==="none" && f.battle){ g.quest="active"; }
+      if(g.quest==="readyToTurnIn"){ g.quest="done"; g.inv.push("ポーション","ポーション"); g.msg="お礼にポーションを2つもらった！"; g.msgT=140; }
+      g.dlg=null; g.dlgIdx=0;
+    }
+    return;
+  }
+  if(Math.hypot(g.px-NPC_POS.x, g.py-NPC_POS.y) < 52){
+    if(g.quest==="readyToTurnIn") g.dlg=["おお、もうスライムを3体も！","さすが新人開発者……じゃなかった、勇者様だ。","これはお礼だ。受け取ってくれ。"];
+    else if(g.quest==="active") g.dlg=["スライムを3体退治してくれたらお礼をするよ。","今の討伐数："+g.defeats+" / 3"];
+    else if(g.quest==="done") g.dlg=["町の平和は君のおかげだ。","……東の大きいやつ？ ああ、あれは開発中のボスだよ。"];
+    else if(f.battle) g.dlg=["ようこそ、はじまりの町へ！","最近スライムが増えて困っていてね……","スライムを3体退治してくれないか？"];
+    else g.dlg=["ようこそ、はじまりの町へ！","……君、まだ武器を振れないのかい？（戦闘システム未実装）"];
+    g.dlgIdx = 0;
+  }
+}
+
+function useItem(){
+  const g = game;
+  if(!g.invOpen || !g.inv.length) return;
+  const item = g.inv[g.invSel];
+  if(item==="ポーション"){ g.hp = Math.min(100, g.hp+30); g.inv.splice(g.invSel,1); g.msg="ポーションを使った！HPが30回復した"; g.msgT=110; g.invSel=Math.max(0,Math.min(g.invSel,g.inv.length-1)); }
+}
+
+/* ---------- 描画 ---------- */
+function draw(){
+  const cv = $("game"), cx = cv.getContext("2d");
+  const g = game, f = unlockedFeatures();
+  cx.imageSmoothingEnabled = false;
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    const t = MAP[y][x];
+    drawSprite(cx, t==="2"?"water":(t==="3"?"path":"grass"), x*TILE, y*TILE, TILE);
+    if(t==="1") drawSprite(cx, "tree", x*TILE, y*TILE, TILE);
+    if(t==="4") drawSprite(cx, "house", x*TILE, y*TILE, TILE);
+  }
+  if(!g) return;
+  // アイテム
+  if(f.items) g.items.forEach(it=>{ if(it.taken) return; drawSprite(cx, "potion", it.x+7, it.y+8, 18); });
+  // NPC
+  if(f.npc){ drawSprite(cx, "npc", NPC_POS.x+2, NPC_POS.y+2, 28); if(Math.hypot(g.px-NPC_POS.x,g.py-NPC_POS.y)<52 && !g.dlg){ cx.fillStyle="#fff"; cx.font="11px sans-serif"; cx.fillText("E: 話す", NPC_POS.x+2, NPC_POS.y-2); } }
+  // 敵
+  g.enemies.forEach(e=>{
+    if(e.dead) return;
+    const sz = e.boss? 52 : 30;
+    drawSprite(cx, e.boss? "boss":"slime", e.x+16-sz/2, e.y+22-sz/2, sz);
+    if(f.battle){ const bscale = e.boss?1.8:1; cx.fillStyle="#222"; cx.fillRect(e.x-2, e.y-2-8*(bscale-1), 36*bscale, 4); cx.fillStyle="#E97366"; cx.fillRect(e.x-2, e.y-2-8*(bscale-1), 36*bscale*(e.hp/e.max), 4); }
+  });
+  // プレイヤー
+  const blink = g.hurtT>0 && Math.floor(g.hurtT/4)%2===0;
+  if(!blink){
+    drawSprite(cx, "player", g.px+2, g.py+1, 30);
+  }
+  // 攻撃エフェクト
+  if(g.atkT>14){ cx.strokeStyle="rgba(255,255,255,.85)"; cx.lineWidth=3; cx.beginPath(); cx.arc(g.px+16+g.dir[0]*24, g.py+16+g.dir[1]*24, 14, 0, 7); cx.stroke(); }
+  // HUD
+  if(f.hud){
+    cx.fillStyle="rgba(0,0,0,.55)"; cx.fillRect(8,8,150,38);
+    cx.fillStyle="#fff"; cx.font="bold 10px sans-serif"; cx.fillText("HP", 14, 21);
+    cx.fillStyle="#333"; cx.fillRect(32,13,110,9);
+    cx.fillStyle = g.hp>30? "#72BC8F":"#E97366"; cx.fillRect(32,13,110*(g.hp/100),9);
+    cx.fillStyle="#ccc"; cx.font="10px sans-serif";
+    cx.fillText(f.battle? "討伐数 "+g.defeats : "※攻撃は未実装", 14, 38);
+  }
+  if(g.quest==="active"){ cx.fillStyle="rgba(0,0,0,.55)"; cx.fillRect(470,8,162,22); cx.fillStyle="#EAC26B"; cx.font="10px sans-serif"; cx.fillText("📜 スライム退治 "+Math.min(g.defeats,3)+"/3", 478, 22); }
+  if(g.quest==="readyToTurnIn"){ cx.fillStyle="rgba(0,0,0,.55)"; cx.fillRect(470,8,162,22); cx.fillStyle="#72BC8F"; cx.font="10px sans-serif"; cx.fillText("📜 案内人に報告しよう！", 478, 22); }
+  // メッセージ
+  if(g.msgT>0 && g.msg){ cx.fillStyle="rgba(0,0,0,.7)"; const w = cx.measureText(g.msg).width+30; cx.fillRect(320-w/2, 340, w, 26); cx.fillStyle="#fff"; cx.font="12px sans-serif"; cx.textAlign="center"; cx.fillText(g.msg, 320, 357); cx.textAlign="left"; }
+  // 会話ウィンドウ
+  if(g.dlg){
+    cx.fillStyle="rgba(10,12,18,.92)"; cx.fillRect(40, 300, 560, 70);
+    cx.strokeStyle="#5E9FE8"; cx.lineWidth=2; cx.strokeRect(40,300,560,70);
+    cx.fillStyle="#EAC26B"; cx.font="bold 12px sans-serif"; cx.fillText("案内人", 56, 320);
+    cx.fillStyle="#fff"; cx.font="13px sans-serif"; cx.fillText(g.dlg[g.dlgIdx], 56, 344);
+    cx.fillStyle="#888"; cx.font="10px sans-serif"; cx.fillText("E: 次へ", 550, 362);
+  }
+  // インベントリ
+  if(g.invOpen){
+    cx.fillStyle="rgba(10,12,18,.92)"; cx.fillRect(200, 80, 240, 200);
+    cx.strokeStyle="#5E9FE8"; cx.lineWidth=2; cx.strokeRect(200,80,240,200);
+    cx.fillStyle="#fff"; cx.font="bold 13px sans-serif"; cx.fillText("インベントリ", 216, 104);
+    if(!g.inv.length){ cx.fillStyle="#888"; cx.font="12px sans-serif"; cx.fillText("（からっぽ）", 216, 132); }
+    g.inv.slice(0,8).forEach((it,i)=>{
+      cx.fillStyle = i===g.invSel? "#5E9FE8":"#ccc"; cx.font="12px sans-serif";
+      cx.fillText((i===g.invSel?"▶ ":"   ")+it, 216, 130+i*20);
+    });
+    cx.fillStyle="#888"; cx.font="10px sans-serif"; cx.fillText("↑↓選択 / Enter使用 / I閉じる", 216, 268);
+  }
+  // クリアバナー
+  if(g.bannerT>0){
+    cx.fillStyle="rgba(0,0,0,.75)"; cx.fillRect(0,140,640,100);
+    cx.fillStyle="#EAC26B"; cx.font="bold 26px sans-serif"; cx.textAlign="center";
+    cx.fillText("🏆 CodeCraft Chronicles CLEAR!", 320, 185);
+    cx.fillStyle="#fff"; cx.font="13px sans-serif";
+    cx.fillText("このゲームのすべてのシステムは、あなたが書いたコードで動いています。", 320, 212);
+    cx.textAlign="left";
+  }
+}
+function loop(){
+  update(); draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+/* プレビューのキー入力 */
+$("game").addEventListener("keydown", e=>{
+  const k = e.key.length===1? e.key.toLowerCase() : e.key;
+  keys[k] = true;
+  const g = game, f = unlockedFeatures();
+  if(!g) return;
+  if(k===" "){ e.preventDefault(); attack(); }
+  if(k==="e"){ talk(); }
+  if(k==="i" && f.inventory){ g.invOpen = !g.invOpen; }
+  if(g.invOpen){
+    if(k==="ArrowUp"){ e.preventDefault(); g.invSel = Math.max(0, g.invSel-1); }
+    if(k==="ArrowDown"){ e.preventDefault(); g.invSel = Math.min(g.inv.length-1, g.invSel+1); }
+    if(k==="Enter") useItem();
+  }
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(k)) e.preventDefault();
+});
+$("game").addEventListener("keyup", e=>{ const k = e.key.length===1? e.key.toLowerCase() : e.key; keys[k] = false; });
+</script>
+<script>
+"use strict";
+/* =========================================================
+   初期化・イベント配線
+========================================================= */
+function newWorkspace(){
+  state = defaultState();
+  Object.entries(BASE_FILES).forEach(([p,c])=>{ if(c!==null) state.files[p] = { content:c, committed:true }; });
+  issueState("ISSUE-0001").status = "open";
+  state.notifs.push({ icon:"📋", text:"ISSUE-0001「出社初日：エディタに慣れる」が割り当てられました", when: now() });
+  state.chat.push(
+    { who:"nishino", text:"入社おめでとう！リーダーの西野です。このチームで『CodeCraft Chronicles』を完成させましょう。", when: now() },
+    { who:"makabe", text:"レビュー担当の真壁です。コードのことで困ったら何でも聞いてね。まずは ISSUE-0001 から！", when: now() },
+    { who:"sudo", text:"プランナーの須藤です。Buildタブのプレビューはいつでも見られます。よろしく！", when: now() }
+  );
+}
+function loadWorkspace(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    if(!s || s.version!==1) return false;
+    state = Object.assign(defaultState(), s);
+    return true;
+  }catch(e){ return false; }
+}
+function renderAll(){
+  renderExplorer(); renderIssues(); renderInspector(); renderGit();
+  renderNotifs(); renderChat(); renderConsole(); renderBuildFeats(); updateStatus();
+  if(state.openFile && state.files[state.openFile]) openFile(state.openFile);
+  if(state.lastBuild){ $("buildLamp").className = state.lastBuild.ok?"ok":"ng"; $("buildText").textContent = state.lastBuild.ok? "Build 成功（"+state.lastBuild.when+"）":"Build 失敗"; }
+}
+
+/* ---------- 配線 ---------- */
+bindTabs("bottomTabs"); bindTabs("rightTabs");
+$("btnBottomMin").addEventListener("click", ()=>$("bottom").classList.toggle("min"));
+$("mNavL").addEventListener("click", ()=>{ $("left").classList.toggle("open"); $("right").classList.remove("open"); });
+$("mNavR").addEventListener("click", ()=>{ $("right").classList.toggle("open"); $("left").classList.remove("open"); });
+
+const ta = $("code");
+ta.addEventListener("input", refreshEditor);
+ta.addEventListener("scroll", syncScroll);
+ta.addEventListener("keydown", e=>{
+  if(e.key==="Tab"){ e.preventDefault(); ta.setRangeText("    ", ta.selectionStart, ta.selectionEnd, "end"); refreshEditor(); }
+});
+document.addEventListener("keydown", e=>{
+  if((e.metaKey||e.ctrlKey) && e.key==="s"){ e.preventDefault(); saveFile(); }
+  if((e.metaKey||e.ctrlKey) && e.key==="b"){ e.preventDefault(); doBuild(); }
+});
+$("btnSaveFile").addEventListener("click", saveFile);
+$("btnBuild").addEventListener("click", doBuild);
+$("btnBuild2").addEventListener("click", doBuild);
+$("btnFind").addEventListener("click", findNext);
+$("btnRepl").addEventListener("click", replaceOne);
+$("btnReplAll").addEventListener("click", replaceAllTxt);
+$("snippet").addEventListener("change", e=>{ insertSnippet(e.target.value); e.target.value=""; });
+$("termIn").addEventListener("keydown", e=>{ if(e.key==="Enter"){ termExec(e.target.value); e.target.value=""; } });
+$("btnCommit").addEventListener("click", ()=>doCommit($("commitMsg").value));
+$("commitMsg").addEventListener("keydown", e=>{ if(e.key==="Enter") doCommit(e.target.value); });
+$("btnPush").addEventListener("click", ()=>{ clog("ok", "origin/main へ push しました（" + state.git.ahead + " コミット）"); state.git.ahead=0; onAction("push"); persist(); });
+$("btnPull").addEventListener("click", ()=>clog("info", "すでに最新です（Already up to date）"));
+$("btnPreview").addEventListener("click", openPreview);
+$("btnPvClose").addEventListener("click", closePreview);
+$("btnCccSave").addEventListener("click", cccSave);
+$("btnUnity").addEventListener("click", exportUnity);
+$("btnChat").addEventListener("click", sendChat);
+$("chatIn").addEventListener("keydown", e=>{ if(e.key==="Enter") sendChat(); });
+function sendChat(){
+  const t = $("chatIn").value.trim(); if(!t) return;
+  chatMsg("me", t, true); $("chatIn").value="";
+  const replies = [
+    "なるほど！詰まったらIssueの「実装例を見る」も使ってね。カンニングじゃない、学習だよ。",
+    "いい質問ですね。まずはBuildしてエラーメッセージを読むのが上達の近道ですよ。",
+    "進捗良さそうで何より！コミットも忘れずにね。",
+    "困ったら仕様書の「💡新しい知識」欄を読み返すとヒントがあることが多いです。"
+  ];
+  setTimeout(()=>chatMsg("makabe", replies[state.chat.length % replies.length]), 700);
+}
+$("btnSaveAll").addEventListener("click", ()=>{ saveFile(); persist(); notify("💾","進行状況を保存しました（このブラウザに自動保存されます）"); });
+$("btnJsonOut").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state,null,1)], { type:"application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "catalyst_save.json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+});
+$("jsonIn").addEventListener("change", e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{
+      const s = JSON.parse(r.result);
+      if(!s || s.version!==1) throw new Error("bad");
+      state = Object.assign(defaultState(), s);
+      renderAll(); persist();
+      notify("📥","セーブデータを読み込みました");
+    }catch(err){ alert("セーブデータを読み込めませんでした"); } };
+  r.readAsText(file); e.target.value="";
+});
+$("btnReset").addEventListener("click", ()=>{
+  if(!confirm("すべての進行状況を消して最初からやり直します。よろしいですか？")) return;
+  localStorage.removeItem(SAVE_KEY);
+  newWorkspace(); state.started = true;
+  $("code").value=""; $("edEmpty").style.display="flex"; $("edFile").textContent="ファイル未選択";
+  renderAll(); persist();
+});
+$("btnStart").addEventListener("click", ()=>{
+  $("introModal").classList.remove("on");
+  state.started = true;
+  selectIssue("ISSUE-0001");
+  persist();
+});
+
+/* ---------- 起動 ---------- */
+if(loadWorkspace()){
+  $("introModal").classList.toggle("on", !state.started);
+} else {
+  newWorkspace();
+}
+renderAll();
+termPrint("Catalyst Terminal v0.1 — help でコマンド一覧");
+</script>
+<script>
+"use strict";
+/* ===== v0.2: スプライト / パネル開閉 / モバイル / タッチ操作 ===== */
+const SPRITES = {"grass": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtElEQVR4nKVSuw7DIAx0owyWIk9RhnxAviNf1C/u0i1DlC6kFVs7mYIfRG1OQgJ8HOeDy3yd33ACDU+o74pCDFGRY4hpKIGwPQsyEioRJAQktB0wOXciyVzL91s+jIQwTgMst1VZ91pKAvImCZlPjiZf7I+XSZL5KAG2t963qhNXgFs4asUVOIOfBMZpAIAy1L8c5KEWIR7B+iMpREuELdcuSC3UXsCqcQ5uBtR37rcG+ObwAW6rQR+awADKAAAAAElFTkSuQmCC", "path": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAiUlEQVR4nKVTSQ6AMAhE4q0LT/MlfsTf0uWsB1PTKHYJcyEhnWGbLse+naDA6qzR8AFV7FmBmLIsQOSHCM6aJ1ciAgAwB1Fd2k/JlYitx5JoDSLf3sHfhcrIzAGwV0UCc3g6xHoxs3DW3CNozDRtpPfJpwXqk8eU+wJE/lO19sI6UrEF1V+IKcMF2OM4cdVAq/0AAAAASUVORK5CYII=", "water": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAW0lEQVR4nGPUj+//z0ABYKJEM3UNkJRVYJCUVUCRJEaMkWphYGxuzmBsbk6yASwwxtmTJylzASGAy4UsWNRiBbhcyMTAQH4MMDBQMxaobgCx0YozEImN1oEPRACuwhmCf5z+ZQAAAABJRU5ErkJggg==", "tree": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAArklEQVR4nK1SMQ7DIAw8qo4kC+oQkPKETnlA1IdXeUOfgFSWKkvp3k6OTIMpEr2N4+6MsYFGKOlinO2bn/0SstodSUY3DRsXQ8QzvLJB6tvspgGn0QAAHn5NwimIhyhu7q1GZzupK8QQASAJOYjqShylKvwlxFUF1Jg4thb8EhT9dAniJxJojL3VOyMV4ry4SJezSxbpertntcUpWKNhjS5J2sf4/z3gCOvvqTTjA4gkRphf4PKmAAAAAElFTkSuQmCC", "house": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAvElEQVR4nGNgoDVIMdH4j0+eiZBmNTEhvIbgNACmmYGBgQGfIYzYNMI0oYNbr94xzDlzA0UPCgfZVlwA3RC4F4jRDHMZsncYYZo1XEwIakYGN/acYZhz5gYjCwMDA8OcMzcYe1xM/ttaGRGl+fCxc3BvsKBLTrzAC2fnG3wmaBiGAQwMDAyqhqYMt8+fhvPbWybA2ZU1BShqsaYDZM0wIC3CR5wLiHE2QReQAlBccPjYOZwKn775RFANWQAA+LNBGykWlZMAAAAASUVORK5CYII=", "player": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAi0lEQVR4nGNgoBAwYhOMspX7j0182eFHGOqZiNWMSw7DAFIBVi98OLEAqysELBIIewEGdEI6sLKp7gIUAfv6S/8ZGBgYXl/YgtU2UQMfBgYGBoaDjXpwfSz4FBIDqB8LWv5tONMBAwMDw7WNVSh6aJMOQhzksbpizYGHxKcDYgHWWHj26jPRBlDsAgAjIiPpLpTAOQAAAABJRU5ErkJggg==", "slime": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAnElEQVR4nGNgGAUUA0ZsgiY1K/5jEz/TEoGhHkUAplHF2gGrbXeOHsAwCM4wqVnxX8XagcFEng9h48NPOA2CGcKE4gIkzdj42AATsu3EAhVrB7h3WZAlzjz8xGAiz8fQE+bGwMDAwODQvQYud6A0BEMM7gJ0Q0gBGIFIDEAORBZ8Cs9MroGzTXJb8LsA5goGBjLTATaDMFyEJSUCALzAPAFcU+4eAAAAAElFTkSuQmCC", "boss": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA20lEQVR4nGNgIAC29Oj8xyfPhE/Dlh6d/yZGKhhieA3AZys2cawGwGw1MVLBykcGLNgMOHPuDgqNLo4MGLEZkGIxD6sX5pxIwlCP4gKYRjN1J2z6GRgYIPLIBsEZKRbz/pupOzGomAvAld85+QGrMadu7oMbghKIyJqx8bEBJmTbiQVm6k5w76KEwZ2THxhUzAUYsqoCGBgYGBiK/BfA5fo2JmCIwV2AbggpACMQiQHIgYg1ITEwMDCsOdiBIRZiX4HbBTBXMDDgTgenbu5jYGDAkQ6wGYQOsKVEAO2LWuVCZiR9AAAAAElFTkSuQmCC", "npc": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAiElEQVR4nGNgoBAwYhNctWrVf2ziYWFhGOqZKHUBCzZBR8mPRBuA0wXG0f1Y2egAaxi8PjwbaxiI2qZiqMcQmFYgg1UzDGRNeIKiB2sYWBkIY9V87MJbDDG8sXDswlusmnAaMK1A5j8u22EuQ/cixelg4A2ARwkh/yODYxfewqOTunmBUJRhAwBx3yZrhkivbwAAAABJRU5ErkJggg==", "potion": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAtUlEQVR4nGNgoBAw4pKYluf2H5mfNWkXVrVMlLqAYgNweuHEnddbkPkWKqI+2NSx4DLgxqPn3sS4AKsBC/Zd+q8hJ1mJLpbgpIfhYowwwKaZgYGBQUNOsnLBvkv/0cVRTETWLFWX344s96xpYiUDAwPDjUfP25FdgjUWdHetbhe2sUERQzcQpwuc5nRgUwcH+1IqGAi6gBSAYgC2UEYH6GowXCC3bBlOQ7DJYfUCNoX4DKYIAABAhDmey9C9IwAAAABJRU5ErkJggg=="};
+const IMGS = {};
+Object.keys(SPRITES).forEach(k=>{ const im = new Image(); im.src = SPRITES[k]; IMGS[k] = im; });
+function drawSprite(cx, key, x, y, size){
+  const im = IMGS[key];
+  if(im && im.complete && im.naturalWidth){ cx.imageSmoothingEnabled = false; cx.drawImage(im, x, y, size, size); }
+}
+window.drawSprite = drawSprite;
+/* イントロのピクセルアート */
+(function(){
+  const box = document.querySelector("#introModal .box");
+  if(box){
+    const art = document.createElement("div"); art.id = "introArt";
+    art.innerHTML = ['player','slime','npc','potion','boss'].map(k=>`<img alt="" src="${SPRITES[k]}">`).join('');
+    box.insertBefore(art, box.firstChild);
+  }
+})();
+/* パネル開閉（状態は別キーで永続化） */
+const UI_KEY = "catalyst_ui_v1";
+let ui = {};
+try{ ui = JSON.parse(localStorage.getItem(UI_KEY) || "{}") || {}; }catch(e){ ui = {}; }
+function applyUi(){
+  document.getElementById("layout").classList.toggle("noL", !!ui.noL);
+  document.getElementById("layout").classList.toggle("noR", !!ui.noR);
+  document.getElementById("btnPaneL").classList.toggle("off", !!ui.noL);
+  document.getElementById("btnPaneR").classList.toggle("off", !!ui.noR);
+}
+function saveUi(){ try{ localStorage.setItem(UI_KEY, JSON.stringify(ui)); }catch(e){} }
+document.getElementById("btnPaneL").addEventListener("click", ()=>{ ui.noL = !ui.noL; applyUi(); saveUi(); });
+document.getElementById("btnPaneR").addEventListener("click", ()=>{ ui.noR = !ui.noR; applyUi(); saveUi(); });
+applyUi();
+/* モバイル：ドロワーのスクリムと自動クローズ */
+function syncScrim(){
+  const open = document.getElementById("left").classList.contains("open") || document.getElementById("right").classList.contains("open");
+  document.getElementById("scrim").classList.toggle("on", open);
+}
+document.getElementById("mNavL").addEventListener("click", syncScrim);
+document.getElementById("mNavR").addEventListener("click", syncScrim);
+document.getElementById("scrim").addEventListener("click", ()=>{ document.getElementById("left").classList.remove("open"); document.getElementById("right").classList.remove("open"); syncScrim(); });
+["issueList","explorer"].forEach(id=>{
+  $(id).addEventListener("click", ()=>{ if(innerWidth<=920) setTimeout(()=>{ document.getElementById("left").classList.remove("open"); syncScrim(); }, 200); });
+});
+/* タッチ操作（ゲームプレビュー） */
+const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+if(isTouch) document.getElementById("touchUI").classList.add("on");
+function fireKey(type, key){
+  document.getElementById("game").dispatchEvent(new KeyboardEvent(type, { key: key, bubbles: true, cancelable: true }));
+}
+const DIRK = { up:"ArrowUp", down:"ArrowDown", left:"ArrowLeft", right:"ArrowRight" };
+document.querySelectorAll("#dpad button").forEach(b=>{
+  const k = DIRK[b.dataset.k];
+  const on = ev=>{ ev.preventDefault(); fireKey("keydown", k); };
+  const off = ev=>{ ev.preventDefault(); fireKey("keyup", k); };
+  b.addEventListener("pointerdown", on);
+  b.addEventListener("pointerup", off);
+  b.addEventListener("pointercancel", off);
+  b.addEventListener("pointerleave", off);
+});
+function tapKey(key){ fireKey("keydown", key); setTimeout(()=>fireKey("keyup", key), 60); }
+document.getElementById("tbtnA").addEventListener("pointerdown", ev=>{ ev.preventDefault(); tapKey(" "); });
+document.getElementById("tbtnB").addEventListener("pointerdown", ev=>{ ev.preventDefault(); tapKey("e"); });
+document.getElementById("tbtnI").addEventListener("pointerdown", ev=>{ ev.preventDefault(); tapKey("i"); });
+</script>
+</body>
+</html>
